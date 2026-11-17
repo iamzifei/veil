@@ -75,3 +75,13 @@ Swift 5.9+，没有第三方依赖。
 ## 许可
 
 [MIT](LICENSE) © 2026 Zifei Gong · 作者 [James](https://jamesai.dev)
+
+## James 的其他 Mac 应用
+
+| 应用 | 简介 | GitHub |
+|---|---|---|
+| [Candela](https://getcandela.app) | macOS 藏起来的显示器控制 | [iamzifei/Candela](https://github.com/iamzifei/Candela) |
+| [ClipStack](https://getclipstack.app) | 菜单栏剪贴板历史 | [iamzifei/clipstack](https://github.com/iamzifei/clipstack) |
+| [AudioSwitch](https://audioswitch.dev) | 菜单栏音频设备切换 | [iamzifei/audioswitch](https://github.com/iamzifei/audioswitch) |
+| [Inkstone](https://inkslab.app) | 笔记就是你自己的文件 | [iamzifei/inkstone](https://github.com/iamzifei/inkstone) |
+| [敲黑板 Tapper](https://jamesai.dev/tapper/) | 把鼠标指针变成长杆上的卡通手套，演示和录屏时一眼看清你指哪儿。免费，MIT 开源。 | [iamzifei/tapper](https://github.com/iamzifei/tapper) |

@@ -80,3 +80,13 @@ Each display gets a borderless overlay window that is ordered **directly below t
 ## License
 
 [MIT](LICENSE) © 2026 Zifei Gong · made by [James](https://jamesai.dev)
+
+## More Mac apps by James
+
+| App | What it does | GitHub |
+|---|---|---|
+| [Candela](https://getcandela.app) | Every display control macOS hides | [iamzifei/Candela](https://github.com/iamzifei/Candela) |
+| [ClipStack](https://getclipstack.app) | Clipboard history in the menu bar | [iamzifei/clipstack](https://github.com/iamzifei/clipstack) |
+| [AudioSwitch](https://audioswitch.dev) | Audio device switching from the menu bar | [iamzifei/audioswitch](https://github.com/iamzifei/audioswitch) |
+| [Inkstone](https://inkslab.app) | Notes that stay your own files | [iamzifei/inkstone](https://github.com/iamzifei/inkstone) |
+| [Tapper](https://jamesai.dev/tapper/) | Turns your pointer into a cartoon glove on a long stick, for demos and screen recordings. Free, MIT. | [iamzifei/tapper](https://github.com/iamzifei/tapper) |
