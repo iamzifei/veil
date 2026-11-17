@@ -61,7 +61,7 @@ Requires macOS 14 Sonoma or later. Universal binary (Apple Silicon + Intel).
 
 **Permissions.** None for blurring: Veil reads window positions, which needs no permission, and it never records your screen. Auto-hiding the menu bar and Dock asks for *Automation → System Events* the first time you turn it on.
 
-> If macOS says it can't verify the developer, right-click Veil in Applications and choose **Open**. You only need to do this once.
+Signed with a Developer ID and notarized by Apple.
 
 ## Build from source
 
