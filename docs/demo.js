@@ -205,7 +205,11 @@
   });
 
   var blur = $('ctlBlur');
-  function showBlur() { $('outBlur').textContent = state.blur === 0 ? 'Off' : state.blur; }
+  function showBlur() {
+    var off = (window.VeilI18n && window.VeilI18n.t('p.off')) || 'Off';
+    $('outBlur').textContent = state.blur === 0 ? off : state.blur;
+  }
+  document.addEventListener('veil:lang', showBlur);   // re-label "Off" when the language changes
   blur.addEventListener('input', function () { state.blur = +blur.value; showBlur(); render(); });
 
   segBind($('ctlMode'), 'mode', function () {

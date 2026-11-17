@@ -28,7 +28,7 @@
 </head>
 <body>
 
-<a class="skip" href="#try">Skip to the live demo</a>
+<a class="skip" href="#try" data-i18n="skip">Skip to the live demo</a>
 
 <header class="site-header">
   <div class="wrap bar">
@@ -36,15 +36,20 @@
       <img src="assets/icon.png" width="32" height="32" alt="">
       <span>Veil</span>
     </a>
-    <nav class="nav" aria-label="Sections">
-      <a href="#features">Features</a>
-      <a href="#shortcuts">Shortcuts</a>
-      <a href="#automation">Automation</a>
-      <a href="#faq">FAQ</a>
+    <nav class="nav" aria-label="Sections" data-i18n-attr="aria-label:nav.label">
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#shortcuts" data-i18n="nav.shortcuts">Shortcuts</a>
+      <a href="#automation" data-i18n="nav.automation">Automation</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
     </nav>
     <div class="bar-actions">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="zh-Hans" lang="zh-Hans" title="简体中文" aria-label="简体中文" aria-pressed="false">简</button>
+        <button type="button" data-lang="zh-Hant" lang="zh-Hant" title="繁體中文" aria-label="繁體中文" aria-pressed="false">繁</button>
+      </div>
       <a class="btn ghost sm" href="https://github.com/iamzifei/veil" rel="noopener">GitHub</a>
-      <a class="btn primary sm" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg">Download</a>
+      <a class="btn primary sm" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg" data-i18n="btn.download">Download</a>
     </div>
   </div>
 </header>
@@ -54,22 +59,22 @@
 <!-- ───────────── Hero + live demo ───────────── -->
 <section class="hero">
   <div class="wrap">
-    <p class="eyebrow">Free &amp; open source &middot; macOS 14+</p>
-    <h1>Focus on <em>one</em> window.</h1>
-    <p class="lede">Veil keeps the window you are working in sharp and softly blurs everything behind it, so your attention stays on a single thing. It lives in the menu bar and gets out of the way.</p>
+    <p class="eyebrow" data-i18n-html="hero.eyebrow">Free &amp; open source &middot; macOS 14+</p>
+    <h1 data-i18n-html="hero.h1">Focus on <em>one</em> window.</h1>
+    <p class="lede" data-i18n="hero.lede">Veil keeps the window you are working in sharp and softly blurs everything behind it, so your attention stays on a single thing. It lives in the menu bar and gets out of the way.</p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg">Download for macOS</a>
-      <a class="btn ghost" href="#try">Try it right here</a>
+      <a class="btn primary" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg" data-i18n="hero.cta1">Download for macOS</a>
+      <a class="btn ghost" href="#try" data-i18n="hero.cta2">Try it right here</a>
     </div>
-    <p class="fine">Universal build (Apple Silicon + Intel) &middot; MIT licence &middot; no account, no tracking</p>
+    <p class="fine" data-i18n-html="hero.fine">Universal build (Apple Silicon + Intel) &middot; MIT licence &middot; no account, no tracking</p>
   </div>
 </section>
 
 <section class="try" id="try" aria-labelledby="try-h">
   <div class="wrap">
     <div class="try-head">
-      <h2 id="try-h">Try it. This desktop is fake, the effect is not.</h2>
-      <p class="hint"><span class="hint-pointer">Click</span><span class="hint-touch">Tap</span> any window to focus it. Drag a title bar to move it. Hold <kbd>Shift</kbd> and sweep the mouse to peek behind the veil.</p>
+      <h2 id="try-h" data-i18n="try.h2">Try it. This desktop is fake, the effect is not.</h2>
+      <p class="hint" data-i18n-html="try.hint"><span class="hint-pointer">Click</span><span class="hint-touch">Tap</span> any window to focus it. Drag a title bar to move it. Hold <kbd>Shift</kbd> and sweep the mouse to peek behind the veil.</p>
     </div>
 
     <div class="try-grid">
@@ -161,15 +166,15 @@
           </section>
 
           <div class="veil" id="veil" aria-hidden="true"><i class="veil-tint"></i><i class="veil-grain"></i></div>
-          <div class="peek-pill" id="peekPill" aria-hidden="true">Peeking</div>
+          <div class="peek-pill" id="peekPill" aria-hidden="true" data-i18n="p.peeking">Peeking</div>
         </div>
       </div>
 
-      <aside class="panel" aria-label="Veil controls">
+      <aside class="panel" aria-label="Veil controls" data-i18n-attr="aria-label:panel.label">
         <div class="panel-head">
           <img src="assets/icon.png" width="22" height="22" alt="">
           <strong>Veil</strong>
-          <button class="switch" id="ctlOn" role="switch" aria-checked="true" aria-label="Veil on"><i></i></button>
+          <button class="switch" id="ctlOn" role="switch" aria-checked="true" aria-label="Veil on" data-i18n-attr="aria-label:switch.label"><i></i></button>
         </div>
 
         <div class="row">
@@ -180,29 +185,29 @@
         </div>
 
         <div class="row">
-          <label for="ctlBlur">Blur <output id="outBlur">32</output></label>
+          <label for="ctlBlur"><span data-i18n="p.blur">Blur</span> <output id="outBlur">32</output></label>
           <input type="range" id="ctlBlur" min="0" max="60" step="1" value="32">
         </div>
 
         <div class="row">
-          <label id="tintLabel">Tint <output id="outTint">Graphite</output></label>
+          <label id="tintLabel"><span data-i18n="p.tint">Tint</span> <output id="outTint">Graphite</output></label>
           <div class="swatches" id="ctlTint" role="group" aria-labelledby="tintLabel"></div>
-          <input type="range" id="ctlTintAmt" min="0" max="100" value="20" aria-label="Tint strength">
+          <input type="range" id="ctlTintAmt" min="0" max="100" value="20" aria-label="Tint strength" data-i18n-attr="aria-label:tint.strength">
         </div>
 
         <div class="row two">
           <div>
-            <label for="ctlGrain">Grain <output id="outGrain">15%</output></label>
+            <label for="ctlGrain"><span data-i18n="p.grain">Grain</span> <output id="outGrain">15%</output></label>
             <input type="range" id="ctlGrain" min="0" max="100" value="15">
           </div>
           <div>
-            <label for="ctlMono">Monochrome <output id="outMono">0%</output></label>
+            <label for="ctlMono"><span data-i18n="p.mono">Monochrome</span> <output id="outMono">0%</output></label>
             <input type="range" id="ctlMono" min="0" max="100" value="0">
           </div>
         </div>
 
         <div class="row">
-          <label id="transLabel">Transition</label>
+          <label id="transLabel" data-i18n="p.trans">Transition</label>
           <div class="seg" id="ctlTrans" role="group" aria-labelledby="transLabel">
             <button type="button" data-v="fade" aria-pressed="true">Fade</button>
             <button type="button" data-v="cursor" aria-pressed="false">Cursor reveal</button>
@@ -210,7 +215,7 @@
           </div>
         </div>
 
-        <button class="btn peek" id="ctlPeek" type="button">Hold to peek</button>
+        <button class="btn peek" id="ctlPeek" type="button" data-i18n="p.peek">Hold to peek</button>
       </aside>
     </div>
   </div>
@@ -219,10 +224,10 @@
 <!-- ───────────── Demo video ───────────── -->
 <section class="band video" aria-labelledby="video-h">
   <div class="wrap narrow">
-    <h2 id="video-h">The real app, in thirty seconds</h2>
-    <p class="sub">Switch windows and the focus follows. No setup, no window rules to write.</p>
+    <h2 id="video-h" data-i18n="video.h2">The real app, in thirty seconds</h2>
+    <p class="sub" data-i18n="video.sub">Switch windows and the focus follows. No setup, no window rules to write.</p>
     <div class="video-frame">
-      <video autoplay muted loop playsinline preload="metadata" poster="assets/poster.jpg" aria-label="Screen recording of Veil blurring the background while a text window stays sharp">
+      <video autoplay muted loop playsinline preload="metadata" poster="assets/poster.jpg" aria-label="Screen recording of Veil blurring the background while a text window stays sharp" data-i18n-attr="aria-label:video.label">
         <source src="assets/veil-demo.mp4" type="video/mp4">
       </video>
     </div>
@@ -232,44 +237,44 @@
 <!-- ───────────── Features ───────────── -->
 <section class="features" id="features" aria-labelledby="feat-h">
   <div class="wrap">
-    <h2 id="feat-h">Quiet by design, flexible when you want it</h2>
-    <p class="sub">Everything below is in the app today.</p>
+    <h2 id="feat-h" data-i18n="feat.h2">Quiet by design, flexible when you want it</h2>
+    <p class="sub" data-i18n="feat.sub">Everything below is in the app today.</p>
     <div class="grid">
       <article class="card">
-        <h3>Ambient and Deep</h3>
-        <p>Ambient is a light blur with a slight dim, good for all-day use. Deep blurs harder and darkens more, for the moments you need the room to disappear.</p>
+        <h3 data-i18n="card1.h">Ambient and Deep</h3>
+        <p data-i18n="card1.p">Ambient is a light blur with a slight dim, good for all-day use. Deep blurs harder and darkens more, for the moments you need the room to disappear.</p>
       </article>
       <article class="card">
-        <h3>Blur you can dial</h3>
-        <p>Set the radius to taste. At zero Veil becomes a blur-free mode: just dim, tint, grain or monochrome, which is gentler on busy desktops.</p>
+        <h3 data-i18n="card2.h">Blur you can dial</h3>
+        <p data-i18n="card2.p">Set the radius to taste. At zero Veil becomes a blur-free mode: just dim, tint, grain or monochrome, which is gentler on busy desktops.</p>
       </article>
       <article class="card">
-        <h3>Tint, grain, monochrome</h3>
-        <p>Pick Graphite, a system or preset colour, or any custom one, with its own strength. Add film grain, or drain the colour out of everything behind.</p>
+        <h3 data-i18n="card3.h">Tint, grain, monochrome</h3>
+        <p data-i18n="card3.p">Pick Graphite, a system or preset colour, or any custom one, with its own strength. Add film grain, or drain the colour out of everything behind.</p>
       </article>
       <article class="card">
-        <h3>App Groups</h3>
-        <p>Let an editor and a browser share focus so both stay sharp. Or keep every window of the front app clear, and list the apps Veil should always ignore.</p>
+        <h3 data-i18n="card4.h">App Groups</h3>
+        <p data-i18n="card4.p">Let an editor and a browser share focus so both stay sharp. Or keep every window of the front app clear, and list the apps Veil should always ignore.</p>
       </article>
       <article class="card">
-        <h3>Multi-display</h3>
-        <p>Per screen keeps the frontmost window on each display sharp. Global keeps one window sharp and veils every other screen.</p>
+        <h3 data-i18n="card5.h">Multi-display</h3>
+        <p data-i18n="card5.p">Per screen keeps the frontmost window on each display sharp. Global keeps one window sharp and veils every other screen.</p>
       </article>
       <article class="card">
-        <h3>Menu bar and Dock</h3>
-        <p>Optionally hide the menu bar and Dock while Veil is active. The Stage Manager strip stays visible, or you can blur it too.</p>
+        <h3 data-i18n="card6.h">Menu bar and Dock</h3>
+        <p data-i18n="card6.p">Optionally hide the menu bar and Dock while Veil is active. The Stage Manager strip stays visible, or you can blur it too.</p>
       </article>
       <article class="card">
-        <h3>Gestures</h3>
-        <p>Shake the mouse to toggle. Hold Shift and shake to peek. Push into a screen corner for a quick look. Veil steps aside while you drag a file.</p>
+        <h3 data-i18n="card7.h">Gestures</h3>
+        <p data-i18n="card7.p">Shake the mouse to toggle. Hold Shift and shake to peek. Push into a screen corner for a quick look. Veil steps aside while you drag a file.</p>
       </article>
       <article class="card">
-        <h3>Transitions</h3>
-        <p>A soft fade, a cursor reveal that opens as a circle from the pointer, or none at all. Reduced-motion settings are respected.</p>
+        <h3 data-i18n="card8.h">Transitions</h3>
+        <p data-i18n="card8.p">A soft fade, a cursor reveal that opens as a circle from the pointer, or none at all. Reduced-motion settings are respected.</p>
       </article>
       <article class="card">
-        <h3>Native and light</h3>
-        <p>Written in Swift for Apple Silicon and Intel. The core feature needs no permissions and no screen recording.</p>
+        <h3 data-i18n="card9.h">Native and light</h3>
+        <p data-i18n="card9.p">Written in Swift for Apple Silicon and Intel. The core feature needs no permissions and no screen recording.</p>
       </article>
     </div>
   </div>
@@ -278,30 +283,30 @@
 <!-- ───────────── Gestures & shortcuts ───────────── -->
 <section class="band" id="shortcuts" aria-labelledby="sc-h">
   <div class="wrap">
-    <h2 id="sc-h">Gestures and shortcuts</h2>
-    <p class="sub">Four global shortcuts, all rebindable in Settings.</p>
+    <h2 id="sc-h" data-i18n="sc.h2">Gestures and shortcuts</h2>
+    <p class="sub" data-i18n="sc.sub">Four global shortcuts, all rebindable in Settings.</p>
     <div class="two-col">
       <div class="table-wrap">
         <table>
-          <caption>Keyboard</caption>
-          <thead><tr><th scope="col">Action</th><th scope="col">Default</th></tr></thead>
+          <caption data-i18n="sc.kb">Keyboard</caption>
+          <thead><tr><th scope="col" data-i18n="sc.action">Action</th><th scope="col" data-i18n="sc.default">Default</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Toggle Veil</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>F</kbd></td></tr>
-            <tr><th scope="row">Switch mode</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>M</kbd></td></tr>
-            <tr><th scope="row">Ignore current app</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>E</kbd></td></tr>
-            <tr><th scope="row">Open controls</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>C</kbd></td></tr>
+            <tr><th scope="row" data-i18n="sc.r1">Toggle Veil</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>F</kbd></td></tr>
+            <tr><th scope="row" data-i18n="sc.r2">Switch mode</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>M</kbd></td></tr>
+            <tr><th scope="row" data-i18n="sc.r3">Ignore current app</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>E</kbd></td></tr>
+            <tr><th scope="row" data-i18n="sc.r4">Open controls</th><td><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>C</kbd></td></tr>
           </tbody>
         </table>
       </div>
       <div class="table-wrap">
         <table>
-          <caption>Pointer</caption>
-          <thead><tr><th scope="col">Gesture</th><th scope="col">What it does</th></tr></thead>
+          <caption data-i18n="sc.ptr">Pointer</caption>
+          <thead><tr><th scope="col" data-i18n="sc.gesture">Gesture</th><th scope="col" data-i18n="sc.effect">What it does</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Shake the mouse</th><td>Toggle Veil on or off. Sensitivity is adjustable.</td></tr>
-            <tr><th scope="row"><kbd>⇧</kbd> + shake</th><td>Peek behind the veil. Lasts at least 2 seconds and holds while the key is down.</td></tr>
-            <tr><th scope="row">Screen corner</th><td>Push the pointer into a corner to peek.</td></tr>
-            <tr><th scope="row">Drag a file</th><td>The veil hides automatically so you can reach your drop target.</td></tr>
+            <tr><th scope="row" data-i18n="sc.g1">Shake the mouse</th><td data-i18n="sc.g1d">Toggle Veil on or off. Sensitivity is adjustable.</td></tr>
+            <tr><th scope="row" data-i18n-html="sc.g2"><kbd>⇧</kbd> + shake</th><td data-i18n="sc.g2d">Peek behind the veil. Lasts at least 2 seconds and holds while the key is down.</td></tr>
+            <tr><th scope="row" data-i18n="sc.g3">Screen corner</th><td data-i18n="sc.g3d">Push the pointer into a corner to peek.</td></tr>
+            <tr><th scope="row" data-i18n="sc.g4">Drag a file</th><td data-i18n="sc.g4d">The veil hides automatically so you can reach your drop target.</td></tr>
           </tbody>
         </table>
       </div>
@@ -314,12 +319,12 @@
   <div class="wrap">
     <div class="auto-grid">
       <div>
-        <h2 id="auto-h">Script it with a URL</h2>
-        <p class="sub left">Veil registers a <code>veil://</code> scheme, so anything that can open a URL can drive it: the shell, AppleScript, Shortcuts, Raycast, a keyboard-maestro macro.</p>
+        <h2 id="auto-h" data-i18n="auto.h2">Script it with a URL</h2>
+        <p class="sub left" data-i18n-html="auto.sub">Veil registers a <code>veil://</code> scheme, so anything that can open a URL can drive it: the shell, AppleScript, Shortcuts, Raycast, a keyboard-maestro macro.</p>
         <ul class="plain">
-          <li><code>veil://toggle</code>, <code>on</code>, <code>off</code> and <code>peek</code></li>
-          <li><code>veil://mode/deep</code> to pick a mode</li>
-          <li><code>veil://set?…</code> to change any setting in one call</li>
+          <li data-i18n-html="auto.l1"><code>veil://toggle</code>, <code>on</code>, <code>off</code> and <code>peek</code></li>
+          <li data-i18n-html="auto.l2"><code>veil://mode/deep</code> to pick a mode</li>
+          <li data-i18n-html="auto.l3"><code>veil://set?…</code> to change any setting in one call</li>
         </ul>
       </div>
       <div class="code-col">
@@ -342,44 +347,44 @@ open location "veil://peek"
 <!-- ───────────── Install ───────────── -->
 <section class="band install" id="install" aria-labelledby="inst-h">
   <div class="wrap narrow">
-    <h2 id="inst-h">Install</h2>
-    <p class="sub">Needs macOS 14 Sonoma or later. Apple Silicon and Intel.</p>
+    <h2 id="inst-h" data-i18n="inst.h2">Install</h2>
+    <p class="sub" data-i18n="inst.sub">Needs macOS 14 Sonoma or later. Apple Silicon and Intel.</p>
     <ol class="steps">
-      <li><span>1</span><div><b>Download</b> the disk image.</div></li>
-      <li><span>2</span><div><b>Drag Veil</b> into your Applications folder.</div></li>
-      <li><span>3</span><div><b>Open it.</b> A small icon appears in the menu bar. Click any window and you are focused.</div></li>
+      <li><span>1</span><div data-i18n-html="inst.s1"><b>Download</b> the disk image.</div></li>
+      <li><span>2</span><div data-i18n-html="inst.s2"><b>Drag Veil</b> into your Applications folder.</div></li>
+      <li><span>3</span><div data-i18n-html="inst.s3"><b>Open it.</b> A small icon appears in the menu bar. Click any window and you are focused.</div></li>
     </ol>
     <div class="cta center">
-      <a class="btn primary" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg">Download Veil.dmg</a>
-      <a class="btn ghost" href="https://github.com/iamzifei/veil">View source</a>
+      <a class="btn primary" href="https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg" data-i18n="inst.dl">Download Veil.dmg</a>
+      <a class="btn ghost" href="https://github.com/iamzifei/veil" data-i18n="inst.src">View source</a>
     </div>
-    <p class="note">First launch: if macOS says it can’t verify the developer, right-click Veil and choose Open.</p>
+    <p class="note" data-i18n="inst.note">First launch: if macOS says it can’t verify the developer, right-click Veil and choose Open.</p>
   </div>
 </section>
 
 <!-- ───────────── FAQ ───────────── -->
 <section class="faq" id="faq" aria-labelledby="faq-h">
   <div class="wrap narrow">
-    <h2 id="faq-h">Questions</h2>
+    <h2 id="faq-h" data-i18n="faq.h2">Questions</h2>
     <details>
-      <summary>Is it really free?</summary>
-      <p>Yes. Veil is MIT-licensed and open source. There is no paid tier, no trial timer and no account. You can read, build and change the code on GitHub.</p>
+      <summary data-i18n="faq1.q">Is it really free?</summary>
+      <p data-i18n="faq1.a">Yes. Veil is MIT-licensed and open source. There is no paid tier, no trial timer and no account. You can read, build and change the code on GitHub.</p>
     </details>
     <details>
-      <summary>Does it need any permissions?</summary>
-      <p>Not for the core feature. Blurring the background works without Screen Recording or Accessibility access. The only optional permission is Automation, which Veil asks for if you turn on auto-hiding the menu bar and Dock.</p>
+      <summary data-i18n="faq2.q">Does it need any permissions?</summary>
+      <p data-i18n="faq2.a">Not for the core feature. Blurring the background works without Screen Recording or Accessibility access. The only optional permission is Automation, which Veil asks for if you turn on auto-hiding the menu bar and Dock.</p>
     </details>
     <details>
-      <summary>Will it slow my Mac down?</summary>
-      <p>No. Veil hands the blur to the system compositor, the same machinery macOS uses for its own translucent surfaces. It does not capture your screen or process frames itself, so idle cost is close to nothing.</p>
+      <summary data-i18n="faq3.q">Will it slow my Mac down?</summary>
+      <p data-i18n="faq3.a">No. Veil hands the blur to the system compositor, the same machinery macOS uses for its own translucent surfaces. It does not capture your screen or process frames itself, so idle cost is close to nothing.</p>
     </details>
     <details>
-      <summary>Can I keep two apps sharp at once?</summary>
-      <p>Yes. Put them in an App Group, for example your editor and your browser, and they share focus. You can also keep all windows of the front app sharp, and add apps to an ignore list.</p>
+      <summary data-i18n="faq4.q">Can I keep two apps sharp at once?</summary>
+      <p data-i18n="faq4.a">Yes. Put them in an App Group, for example your editor and your browser, and they share focus. You can also keep all windows of the front app sharp, and add apps to an ignore list.</p>
     </details>
     <details>
-      <summary>Does it work with several displays?</summary>
-      <p>Yes. Choose Per screen so each display keeps its own frontmost window sharp, or Global to keep a single window sharp across all displays.</p>
+      <summary data-i18n="faq5.q">Does it work with several displays?</summary>
+      <p data-i18n="faq5.a">Yes. Choose Per screen so each display keeps its own frontmost window sharp, or Global to keep a single window sharp across all displays.</p>
     </details>
   </div>
 </section>
@@ -389,11 +394,12 @@ open location "veil://peek"
 <footer class="site-footer">
   <div class="wrap foot">
     <div class="foot-brand"><img src="assets/icon.png" width="24" height="24" alt=""><span>Veil</span></div>
-    <p>Made by James &middot; <a href="https://jamesai.dev">jamesai.dev</a></p>
-    <p class="links"><a href="https://github.com/iamzifei/veil/blob/main/LICENSE">MIT licence</a><a href="https://github.com/iamzifei/veil">GitHub</a></p>
+    <p data-i18n-html="foot.made">Made by James &middot; <a href="https://jamesai.dev">jamesai.dev</a></p>
+    <p class="links"><a href="https://github.com/iamzifei/veil/blob/main/LICENSE" data-i18n="foot.mit">MIT licence</a><a href="https://github.com/iamzifei/veil">GitHub</a></p>
   </div>
 </footer>
 
+<script src="i18n.js"></script>
 <script src="demo.js"></script>
 </body>
 </html>

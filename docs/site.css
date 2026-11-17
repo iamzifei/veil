@@ -13,7 +13,9 @@
   --shadow: 0 30px 80px -20px rgba(0,0,0,.65);
   --radius: 16px;
   --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
-  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "PingFang TC", "Noto Sans SC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", sans-serif;
+  --cjk-sc: "PingFang SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --cjk-tc: "PingFang TC", "Noto Sans TC", "Source Han Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   color-scheme: dark;
 }
@@ -156,26 +158,26 @@ kbd {
 .notes { padding: 14px 16px; }
 .notes h4 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
 .notes p { color: #4a4a50; margin-bottom: 10px; }
-.notes .quiet { color: #8a8a90; font-style: italic; }
+.notes .quiet { color: #6e6e73; font-style: italic; }
 .todo { list-style: none; margin: 0 0 10px; padding: 0; }
 .todo li { position: relative; padding: 3px 0 3px 22px; }
 .todo li::before { content: ""; position: absolute; left: 0; top: 6px; width: 12px; height: 12px; border: 1.5px solid #b0b0b6; border-radius: 50%; }
-.todo li.done { color: #9a9aa0; text-decoration: line-through; }
+.todo li.done { color: #6e6e73; text-decoration: line-through; }
 .todo li.done::before { background: #f5b301; border-color: #f5b301; }
 
 .tabs { flex: none; display: flex; background: #181a20; font-size: 11.5px; }
 .tabs span { padding: 7px 14px; color: #8b90a0; border-right: 1px solid #101116; }
 .tabs .on { background: #1d1f26; color: #e6e8ee; box-shadow: inset 0 -2px 0 #78d4c6; }
 .code { margin: 0; padding: 10px 0; font: 12px/1.65 var(--mono); white-space: pre; color: #c9ced9; }
-.code b { display: inline-block; width: 34px; padding-right: 12px; text-align: right; color: #565b6b; font-weight: 400; }
+.code b { display: inline-block; width: 34px; padding-right: 12px; text-align: right; color: #8b91a5; font-weight: 400; }
 .code s { text-decoration: none; color: #c792ea; } .code q { quotes: none; color: #a6e3a1; }
-.code u { text-decoration: none; color: #82aaff; } .code n { color: #f9a56b; } .code c { color: #5f667a; font-style: italic; }
+.code u { text-decoration: none; color: #82aaff; } .code n { color: #f9a56b; } .code c { color: #949bb0; font-style: italic; }
 
 .chat { padding: 12px; display: flex; flex-direction: column; gap: 7px; background: #fff; }
 .bub { max-width: 82%; padding: 7px 11px; border-radius: 15px; }
 .bub.in { background: #e9e9ec; align-self: flex-start; border-bottom-left-radius: 4px; }
-.bub.out { background: #2f8cff; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-.stamp { align-self: flex-end; font-size: 10px; color: #8e8e93; }
+.bub.out { background: #0a66d8; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.stamp { align-self: flex-end; font-size: 10px; color: #6e6e73; }
 
 .music .body { background: linear-gradient(180deg, #23262f, #191b22); }
 .player { display: flex; gap: 16px; padding: 18px; align-items: center; }
@@ -194,7 +196,7 @@ kbd {
 
 .cal { display: flex; gap: 14px; padding: 12px 14px; }
 .cal-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 11px; text-align: center; align-content: start; }
-.cal-grid span { padding: 5px 0; border-radius: 50%; } .cal-grid .h { color: #8a8a90; font-weight: 600; }
+.cal-grid span { padding: 5px 0; border-radius: 50%; } .cal-grid .h { color: #6e6e73; font-weight: 600; }
 .cal-grid .today { background: #ff453a; color: #fff; font-weight: 700; }
 .events { flex: none; width: 128px; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .events li { position: relative; padding: 6px 8px 6px 14px; border-radius: 6px; background: #f1f1f4; font-size: 11px; }
@@ -341,3 +343,27 @@ details p { padding: 0 0 24px; color: var(--muted); max-width: 640px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* ── Language switcher ── */
+.lang { display: flex; align-items: center; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.lang button { border: 0; background: none; color: var(--muted); font: 500 12.5px/1 var(--sans); padding: 7px 11px; border-radius: 999px; cursor: pointer; transition: background .2s, color .2s; }
+.lang button:lang(zh-Hans) { font-family: var(--cjk-sc); }
+.lang button:lang(zh-Hant) { font-family: var(--cjk-tc); }
+.lang button:hover { color: var(--text); }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.bar-actions { align-items: center; }
+
+/* ── Chinese typography: the Latin serif has no CJK glyphs, so headings switch to a sans ── */
+html:lang(zh-Hans) { --sans: "Inter", var(--cjk-sc); }
+html:lang(zh-Hant) { --sans: "Inter", var(--cjk-tc); }
+html:lang(zh-Hans) body, html:lang(zh-Hant) body { line-height: 1.75; }
+html:lang(zh-Hans) h1, html:lang(zh-Hans) section h2, html:lang(zh-Hans) .try-head h2,
+html:lang(zh-Hant) h1, html:lang(zh-Hant) section h2, html:lang(zh-Hant) .try-head h2 { font-family: var(--sans); font-weight: 600; letter-spacing: 0; line-height: 1.2; }
+html:lang(zh-Hans) h1, html:lang(zh-Hant) h1 { font-size: clamp(40px, 7.6vw, 88px); line-height: 1.1; }
+html:lang(zh-Hans) h1 em, html:lang(zh-Hant) h1 em { font-style: normal; }
+html:lang(zh-Hans) .eyebrow, html:lang(zh-Hant) .eyebrow { letter-spacing: .04em; }
+html:lang(zh-Hans) caption, html:lang(zh-Hant) caption { letter-spacing: .04em; }
+html:lang(zh-Hans) .card h3, html:lang(zh-Hant) .card h3 { letter-spacing: 0; }
+html:lang(zh-Hans) .lede, html:lang(zh-Hant) .lede { max-width: 30em; }
+html:lang(zh-Hans) summary, html:lang(zh-Hant) summary { line-height: 1.5; }
+@media (max-width: 760px) { .lang button { padding: 7px 9px; } }
