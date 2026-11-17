@@ -69,7 +69,10 @@ final class OverlayWindow: NSWindow {
         ignoresMouseEvents = true          // clicks fall through to the window underneath
         isReleasedWhenClosed = false
         level = .normal                    // same level as app windows, so we can slot between them
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        // .transient: Mission Control / App Exposé hide this window. (It used to be
+        // .stationary, which means "stay visible during Exposé" — so the veil sat on
+        // top of the window overview and blurred every thumbnail but one.)
+        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
         alphaValue = 0
 
         let v = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
