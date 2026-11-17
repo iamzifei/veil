@@ -1,0 +1,6 @@
+  <key>CFBundleURLTypes</key>
+  <array><dict>
+    <key>CFBundleURLName</key><string>dev.jamesai.veil</string>
+    <key>CFBundleURLSchemes</key><array><string>veil</string></array>
+  </dict></array>
+  <key>NSAppleEventsUsageDescription</key><string>Veil uses System Events to auto-hide the menu bar and Dock while focus mode is on.</string>
