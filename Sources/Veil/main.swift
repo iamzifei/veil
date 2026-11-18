@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var settingsWindow: NSWindow?
+    /// Sparkle auto-updater, created once for the app's lifetime.
+    private let updater = Updater()
+    private let onboarding = OnboardingController()
 
     func applicationDidFinishLaunching(_ note: Notification) {
         engine = Engine()
@@ -43,6 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleURL(_:reply:)),
                                                      forEventClass: AEEventClass(kInternetEventClass),
                                                      andEventID: AEEventID(kAEGetURL))
+
+        // First launch (or first launch after the guide changed): show the welcome guide once.
+        if Onboarding.shouldShow {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showWelcomeGuide() }
+        }
     }
 
     func applicationWillTerminate(_ note: Notification) { bars.restoreNow() }
@@ -73,6 +81,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         engine.tick()
     }
 
+    @objc func checkForUpdates() { updater.checkForUpdates() }
+
+    /// Opens the welcome guide (also shown automatically once, see applicationDidFinishLaunching).
+    @objc func showWelcomeGuide() {
+        onboarding.show(title: { L("onboarding.veil.window") }, pages: VeilGuide.pages, ctaTitle: { VeilGuide.ctaTitle }) { [weak self] in
+            self?.toggleSettings()
+        }
+    }
+
     @objc func peek() {
         engine.peeking = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.engine.peeking = false }
@@ -82,7 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         if let w = settingsWindow, w.isVisible { w.close(); return }
         if settingsWindow == nil {
             let view = SettingsView(reloadHotkeys: { [weak self] in self?.reloadHotkeys() },
-                                    ignoreFront: { [weak self] in self?.ignoreFrontApp() })
+                                    ignoreFront: { [weak self] in self?.ignoreFrontApp() },
+                                    checkForUpdates: { [weak self] in self?.checkForUpdates() })
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 720),
                              styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             w.title = "Veil"
@@ -130,23 +148,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             menu.addItem(it)
             return it
         }
-        add(s.enabled ? "Turn Veil Off" : "Turn Veil On", #selector(toggle), .toggle, symbol: "power")
+        add(s.enabled ? L("Turn Veil Off") : L("Turn Veil On"), #selector(toggle), .toggle, symbol: "power")
         menu.addItem(.separator())
         for (i, m) in Mode.allCases.enumerated() {
             let it = add(m.title, #selector(setMode(_:)), symbol: m == .ambient ? "sun.haze" : "moon.haze")
             it.tag = i
             it.state = s.mode == m ? .on : .off
         }
-        add("Switch Mode", #selector(switchMode), .switchMode, symbol: "arrow.triangle.2.circlepath")
+        add(L("Switch Mode"), #selector(switchMode), .switchMode, symbol: "arrow.triangle.2.circlepath")
         menu.addItem(.separator())
         let front = engine.focusedAppPublic
-        let name = front?.localizedName ?? "App"
+        let name = front?.localizedName ?? L("App")
         let isIgnored = s.ignored.contains(front?.bundleIdentifier ?? "")
-        add(isIgnored ? "Stop Ignoring \(name)" : "Ignore \(name)", #selector(ignoreFrontApp), .ignoreApp, symbol: "eye.slash")
-        add("Peek", #selector(peek), symbol: "eye")
+        add(isIgnored ? LF("Stop Ignoring %@", name) : LF("Ignore %@", name), #selector(ignoreFrontApp), .ignoreApp, symbol: "eye.slash")
+        add(L("Peek"), #selector(peek), symbol: "eye")
         menu.addItem(.separator())
-        add("Settings…", #selector(toggleSettings), .toggleControls, symbol: "slider.horizontal.3")
-        let quit = NSMenuItem(title: "Quit Veil", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        add(L("Settings…"), #selector(toggleSettings), .toggleControls, symbol: "slider.horizontal.3")
+        add(L("Welcome Guide…"), #selector(showWelcomeGuide), symbol: "hand.wave")
+        add(L("Check for Updates…"), #selector(checkForUpdates), symbol: "arrow.down.circle")
+        let quit = NSMenuItem(title: L("Quit Veil"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.image = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: nil)
         menu.addItem(quit)
     }
@@ -195,6 +215,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 }
 
+// Developer aid: `Veil --render-onboarding <outDir> <lang> <prefix>` renders the guide pages to PNGs and exits.
+if let i = CommandLine.arguments.firstIndex(of: "--render-onboarding"), CommandLine.arguments.count > i + 3 {
+    let a = CommandLine.arguments
+    OnboardingRender.run(outDir: a[i + 1], lang: a[i + 2], prefix: a[i + 3], pages: VeilGuide.pages, cta: { VeilGuide.ctaTitle })
+    exit(0)
+}
+
+_ = LanguageStore.shared   // apply the saved language override before any UI is built
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

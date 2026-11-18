@@ -61,7 +61,7 @@ open -g "veil://set?blur=30&tint=blue&tintAmount=0.3&grain=0.4&monochrome=1&tran
 
 **权限**：模糊本身不需要任何权限。Veil 只读取窗口位置，不录屏。只有第一次打开「自动隐藏菜单栏和 Dock」时，会请求「自动化 → System Events」权限。
 
-已用 Developer ID 签名，并通过 Apple 公证。
+已用 Developer ID 签名，并通过 Apple 公证。更新会自动安装（Sparkle）。
 
 ## 从源码构建
 

@@ -4,3 +4,7 @@
     <key>CFBundleURLSchemes</key><array><string>veil</string></array>
   </dict></array>
   <key>NSAppleEventsUsageDescription</key><string>Veil uses System Events to auto-hide the menu bar and Dock while focus mode is on.</string>
+  <key>SUFeedURL</key><string>https://raw.githubusercontent.com/iamzifei/veil/main/appcast.xml</string>
+  <key>SUPublicEDKey</key><string>CHSkSUupddRglHt3C2quzHtit8LMB29BMI44/O9aItg=</string>
+  <key>SUEnableAutomaticChecks</key><true/>
+  <key>SUScheduledCheckInterval</key><integer>86400</integer>

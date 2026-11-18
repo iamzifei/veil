@@ -7,19 +7,19 @@ import Combine
 enum Mode: String, CaseIterable, Identifiable {
     case ambient, deep
     var id: String { rawValue }
-    var title: String { self == .ambient ? "Ambient" : "Deep" }
+    var title: String { self == .ambient ? L("Ambient") : L("Deep") }
 }
 
 enum ScreenMode: String, CaseIterable, Identifiable {
     case perScreen, global
     var id: String { rawValue }
-    var title: String { self == .perScreen ? "Per screen" : "Global" }
+    var title: String { self == .perScreen ? L("Per screen") : L("Global") }
 }
 
 enum Transition: String, CaseIterable, Identifiable {
     case fade, cursor, none
     var id: String { rawValue }
-    var title: String { ["fade": "Fade", "cursor": "Cursor reveal", "none": "None"][rawValue]! }
+    var title: String { L(["fade": "Fade", "cursor": "Cursor reveal", "none": "None"][rawValue]!) }
 }
 
 /// Modifier that must be held for a shake gesture ("off" disables that gesture).
@@ -27,8 +27,8 @@ enum ShakeModifier: String, CaseIterable, Identifiable {
     case none, shift, control, option, command, off
     var id: String { rawValue }
     var title: String {
-        ["none": "No modifier", "shift": "⇧ Shift", "control": "⌃ Control", "option": "⌥ Option",
-         "command": "⌘ Command", "off": "Off"][rawValue]!
+        L(["none": "No modifier", "shift": "⇧ Shift", "control": "⌃ Control", "option": "⌥ Option",
+           "command": "⌘ Command", "off": "Off"][rawValue]!)
     }
     var flags: NSEvent.ModifierFlags {
         switch self {
@@ -44,13 +44,13 @@ enum ShakeModifier: String, CaseIterable, Identifiable {
 enum MenuClick: String, CaseIterable, Identifiable {
     case settings, toggle
     var id: String { rawValue }
-    var title: String { self == .settings ? "Open Settings" : "Toggle Veil" }
+    var title: String { self == .settings ? L("Open Settings") : L("Toggle Veil") }
 }
 
 enum TintPreset: String, CaseIterable, Identifiable {
     case system, graphite, blue, purple, pink, red, orange, yellow, green, custom
     var id: String { rawValue }
-    var title: String { self == .system ? "As System" : rawValue.capitalized }
+    var title: String { self == .system ? L("As System") : L(rawValue.capitalized) }
     var color: NSColor? {
         switch self {
         case .system: return .controlAccentColor
@@ -114,8 +114,8 @@ enum Action: String, CaseIterable, Identifiable {
     case toggle, switchMode, ignoreApp, toggleControls
     var id: String { rawValue }
     var title: String {
-        ["toggle": "Toggle Veil", "switchMode": "Switch Mode", "ignoreApp": "Ignore App",
-         "toggleControls": "Toggle Controls"][rawValue]!
+        L(["toggle": "Toggle Veil", "switchMode": "Switch Mode", "ignoreApp": "Ignore App",
+           "toggleControls": "Toggle Controls"][rawValue]!)
     }
     var defaultShortcut: Shortcut {
         switch self {
