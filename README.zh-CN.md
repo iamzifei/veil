@@ -54,6 +54,14 @@ open -g "veil://set?blur=30&tint=blue&tintAmount=0.3&grain=0.4&monochrome=1&tran
 
 ## 安装
 
+用 [Homebrew](https://brew.sh)：
+
+```sh
+brew install --cask iamzifei/tap/veil
+```
+
+或者手动安装：
+
 1. 下载 [Veil.dmg](https://github.com/iamzifei/veil/releases/latest/download/Veil.dmg)，打开后把 **Veil** 拖进「应用程序」。
 2. 打开它。Veil 只在菜单栏里，没有 Dock 图标。
 
