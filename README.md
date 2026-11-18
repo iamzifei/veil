@@ -71,7 +71,7 @@ scripts/build.sh            # builds, ad-hoc signs, installs to /Applications
 scripts/build.sh release    # Developer ID signing + DMG (maintainers)
 ```
 
-Swift 5.9+, no third-party dependencies.
+Swift 5.9+. The only dependency is [Sparkle](https://sparkle-project.org) for automatic updates.
 
 ## How it works
 
