@@ -6,6 +6,14 @@
     <description>Most recent Veil updates.</description>
     <language>en</language>
     <item>
+      <title>1.2.1</title>
+      <pubDate>Thu, 26 Nov 2026 23:24:10 -0000</pubDate>
+      <sparkle:version>1.2.1</sparkle:version>
+      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/iamzifei/veil/releases/download/v1.2.1/Veil.dmg" sparkle:edSignature="qjvorgvmUug6FWt7OzPOsV9mNwtrNWcWEhLWHi41AoYc0S+zTFo0rvlgjvH10XNXd6w/0FJpCqGdxO2mKP0oAg==" length="3148302" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>1.2.0</title>
       <pubDate>Thu, 26 Nov 2026 15:11:19 -0000</pubDate>
       <sparkle:version>1.2.0</sparkle:version>
