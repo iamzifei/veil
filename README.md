@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://jamesai.dev/veil/"><img src="docs/assets/veil-demo.gif" width="800" alt="Veil demo: switching windows, blur strength, tint, grain, monochrome, Deep mode"></a><br>
+  <a href="https://jamesai.dev/veil/"><img src="docs/assets/veil-demo.gif" width="800" alt="Veil demo: switching windows, the settings panel, tint, Ambient mode, monochrome, fading off and on"></a><br>
   <sub>▶ <a href="docs/assets/veil-demo.mp4">Full-quality video (MP4)</a> · or <a href="https://jamesai.dev/veil/">play with it live</a> on the website</sub>
 </p>
 
@@ -22,14 +22,15 @@
 
 Your Mac shows every window at full volume. Veil turns the background down: the window you're using stays crisp, and everything behind it fades into a soft blur, so your eyes stop wandering.
 
-- **Ambient and Deep modes.** A light, airy blur, or a darker, heavier one when you really need to focus.
-- **Your look.** Blur radius (0 = blur-free mode that only dims), tint (presets, your system accent, or any colour) with strength, film grain, monochrome.
+- **Deep and Ambient modes.** Deep blurs everything behind your window evenly. Ambient keeps the top of the screen clear and lets the blur build towards the middle.
+- **A Control Center-style panel.** Click the menu-bar icon and a frosted panel appears at the right edge of the screen: ignore the current app, power, mode, and blur, tint and grain sliders up top; *More settings* for everything else.
+- **Your look.** Blur strength (0 = blur-free: tint, grain or monochrome only), tint (as system, nine presets, or any colour) with opacity, film grain, monochrome.
 - **Focus rules.** *App Groups* treat several apps as one focus (say, an editor plus a browser). *App-wide focus* keeps every window of the front app sharp. An *ignore list* switches Veil off for apps like video players.
 - **Multiple displays.** *Per screen* keeps the frontmost window on each display sharp; *Global* only the one you're using.
 - **Gestures.** Shake the mouse to toggle. Hold ⇧ and shake to peek behind the veil (it stays at least 2 s and holds while you keep ⇧ down). Push the pointer into a screen corner to peek. Veil steps aside while you drag a file.
-- **Transitions.** Fade, Cursor reveal (a circle opens from your pointer), or None.
-- **Tidy desktop.** Optionally auto-hide the menu bar and Dock while Veil is on. The Stage Manager strip stays visible (or blur it too).
-- **Automation.** A `veil://` URL scheme for Shell, AppleScript and Shortcuts.
+- **Transitions.** The veil fades in and out (0–1.5 s, 0.75 s by default) or grows as a soft circle from your pointer. When you switch windows, the new one is sharp at once and the old one blurs back in.
+- **Tidy desktop.** Optionally auto-hide the menu bar, the Dock, or both while Veil is on. The Stage Manager strip stays visible (or blur it too).
+- **Automation.** A `veil://` URL scheme for Shell, AppleScript and Shortcuts; the panel lists every command, click one to copy it.
 
 ## Shortcuts
 
@@ -38,19 +39,26 @@ Your Mac shows every window at full volume. Veil turns the background down: the 
 | Toggle Veil | ⌃⌥⌘F |
 | Switch mode (Ambient ↔ Deep) | ⌃⌥⌘M |
 | Ignore the current app | ⌃⌥⌘E |
-| Open controls | ⌃⌥⌘C |
+| Open the settings panel | ⌃⌥⌘C |
 
-All four can be re-recorded in the controls window. Left-click the menu-bar icon to toggle (or to open the controls, your choice). Right-click it for the menu.
+All four can be re-recorded in the panel (More settings → Shortcuts). Left-click the menu-bar icon to open the panel (or to toggle Veil, your choice). Right-click it for the menu. The icon shows the state: a glowing dot for Deep, a soft dot for Ambient, a ring when the front app is ignored, a faint dot when Veil is off.
 
 ## Automation
 
 ```sh
-open -g veil://toggle            # also: on, off, peek, settings, ignore
-open -g veil://mode/deep         # ambient | deep | toggle
-open -g "veil://set?blur=30&tint=blue&tintAmount=0.3&grain=0.4&monochrome=1&transition=cursor"
+open -g veil://toggle                 # also: on, off, peek, settings, check-updates, quit
+open -g veil://mode/ambient           # ambient | deep | toggle
+open -g veil://blur/60                # 0–100
+open -g veil://tint/color/blue        # system, blue, purple, pink, red, orange, yellow, green, graphite, black, or RRGGBB
+open -g veil://tint/opacity/30        # 0–100
+open -g veil://grain/50               # 0–100
+open -g veil://grayscale/toggle       # on | off | toggle | 0–100
+open -g veil://display/global         # perScreen | global
+open -g veil://reveal-all/toggle      # app-wide focus: on | off | toggle
+open -g veil://ignore/toggle          # ignore / include the front app; ignore/<bundle id>, unignore/<bundle id>
 ```
 
-`set` accepts `blur` (0–60), `tint` (preset name or `#RRGGBB`), `tintAmount` (0–0.8), `grain` (0–1), `monochrome` (0–1), `mode`, `display` (`perScreen` / `global`), `appwide`, `blurStageManager`, `autohide` (`on` / `off`), and `transition` (`fade` / `cursor` / `none`). Use `open -g` so Veil doesn't steal focus.
+The older `veil://set?blur=…&tint=…` form still works. Use `open -g` so Veil doesn't steal focus.
 
 ## Install
 
@@ -83,7 +91,7 @@ Swift 5.9+. The only dependency is [Sparkle](https://sparkle-project.org) for au
 
 ## How it works
 
-Each display gets a borderless overlay window that is ordered **directly below the focused window**, so everything above it stays sharp and everything below it is blurred by the window server itself (a `CABackdropLayer` with a Gaussian-blur filter, a tint layer and a grain layer). Windows that must stay sharp but sit lower in the stack (App Groups, App-wide focus, the Stage Manager strip) are cut out of the overlay with a mask. Focus is tracked by polling `CGWindowListCopyWindowInfo` ten times a second; that needs no permission and catches window switches no notification reports.
+Each display gets a borderless overlay window that is ordered **directly below the focused window**, so everything above it stays sharp and everything below it is blurred by the window server itself (a `CABackdropLayer` with a Gaussian-blur filter, a tint layer and a grain layer; Ambient adds a vertical gradient mask). Windows that must stay sharp but sit lower in the stack (App Groups, App-wide focus, the Stage Manager strip) are cut out of the overlay with a mask. Focus is tracked by polling `CGWindowListCopyWindowInfo` twenty times a second; that needs no permission and catches window switches no notification reports.
 
 ## License
 

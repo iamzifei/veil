@@ -15,6 +15,8 @@ let package = Package(
             path: "Sources/Veil",
             // Lets the runtime find Sparkle.framework in Contents/Frameworks.
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
-        )
+        ),
+        // Unit tests for the measured models (grain, blur calibration, tint presets…).
+        .testTarget(name: "VeilTests", dependencies: ["Veil"], path: "Tests/VeilTests")
     ]
 )

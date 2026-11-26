@@ -132,6 +132,9 @@ final class Engine {
         Set(NSWorkspace.shared.runningApplications.filter { bundles.contains($0.bundleIdentifier ?? "") }.map(\.processIdentifier))
     }
 
+    /// Corner radius used for holes — close to macOS 26 window corners.
+    static let holeRadius: CGFloat = 14
+
     func tick() {
         let front = focusedApp
         let frontBundle = front?.bundleIdentifier ?? ""
@@ -140,6 +143,7 @@ final class Engine {
         let normal = all.filter(isNormal)
         let frontPID = front?.processIdentifier ?? -1
         let focusWin = normal.first { $0.pid == frontPID }
+        adjustPolling()
 
         guard !suppressed, let focus = focusWin else {
             overlays.forEach { setShown($0, false) }
@@ -147,7 +151,7 @@ final class Engine {
             return
         }
 
-        // Windows that must stay sharp besides the anchor(s).
+        // Windows that must stay sharp: the focused one, plus its App Group / app-wide peers.
         let groupPIDs = pidsFor(focusSet(for: frontBundle)).union([frontPID])
         var sharp: [WinInfo] = []
         for pid in groupPIDs {
@@ -157,36 +161,73 @@ final class Engine {
         if !s.blurStageManager && Self.stageManagerOn {
             sharp += all.filter { $0.owner == "WindowManager" && $0.alpha > 0.05 && $0.frame.width > 20 }
         }
-
         let ids = all.map(\.id)
+
         for o in overlays {
-            // Pick the anchor for this display.
+            let onThis = { (w: WinInfo) in o.frame.contains(CGPoint(x: w.frame.midX, y: w.frame.midY)) }
+            // The window this display is "about": the focused one, or (per-screen) this display's own front window.
             let anchor: WinInfo?
-            switch s.screenMode {
-            case .global:
+            if onThis(focus) || s.screenMode == .global && o.frame.intersects(focus.frame) {
                 anchor = focus
-            case .perScreen:
-                if o.frame.intersects(focus.frame) && o.frame.contains(CGPoint(x: focus.frame.midX, y: focus.frame.midY)) {
-                    anchor = focus
-                } else {
-                    // Topmost sharp window on this display, else the topmost window on it.
-                    anchor = sharp.first { o.frame.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
-                        ?? normal.first { o.frame.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
-                }
+            } else if s.screenMode == .perScreen {
+                anchor = sharp.first(where: onThis) ?? normal.first(where: onThis)
+            } else {
+                anchor = nil   // global: this display has nothing sharp
             }
-            guard let a = anchor else {
-                // Global mode on a display without the focused window: blur it all,
-                // ordered under the focus window so nothing on this screen is sharp.
-                if s.screenMode == .global { place(o, below: focus.id, ids: ids) } else { setShown(o, false); continue }
-                setHoles(o, sharp: sharp, anchor: focus.id, ids: ids)
-                setShown(o, true)
-                continue
-            }
+            if s.screenMode == .perScreen && anchor == nil { setShown(o, false); continue }
+
+            // Directly below the anchor (global mode without one: below the focused window,
+            // which is on another display, so everything here is veiled).
+            let a = anchor ?? focus
+            let previous = anchors[o.displayID]
             place(o, below: a.id, ids: ids)
-            setHoles(o, sharp: sharp, anchor: a.id, ids: ids)
+            // Focus moved to another window while the veil was up: the old one blurs in gradually.
+            if let prev = previous, prev != a.id, shown[o.displayID] == true,
+               !sharp.contains(where: { $0.id == prev }),            // still sharp (group / app-wide): no blur-in
+               let old = all.first(where: { $0.id == prev }) {
+                o.blurIn(previous: old.frame.offsetBy(dx: -o.frame.minX, dy: -o.frame.minY), id: prev)
+            }
+            var keep = sharp.filter { $0.id != a.id }
+            if s.screenMode == .global && anchor == nil { keep = [] }
+            o.setHoles(holes(for: keep, on: o, all: all, ids: ids, below: a.id))
             setShown(o, true)
         }
         updateActive()
+    }
+
+    /// Hole shapes (window-local) for `wins` on overlay `o`. Each hole is the window's rounded
+    /// rect minus any NON-sharp window stacked above it, so a blurred window that overlaps a
+    /// sharp one stays blurred. `below`: only windows under this one in z-order get holes.
+    private func holes(for wins: [WinInfo], on o: OverlayWindow, all: [WinInfo], ids: [Int], below: Int?) -> [CGPath] {
+        // The anchor itself is sharp too, so it must never be treated as an occluder.
+        let sharpIDs = Set(wins.map(\.id)).union(below.map { [$0] } ?? [])
+        let floor = below.flatMap { ids.firstIndex(of: $0) }
+        let local = { (r: CGRect) in r.intersection(o.frame).offsetBy(dx: -o.frame.minX, dy: -o.frame.minY) }
+        return wins.compactMap { w -> CGPath? in
+            guard let wi = ids.firstIndex(of: w.id) else { return nil }
+            if let f = floor, wi <= f { return nil }
+            let r = local(w.frame)
+            guard !r.isNull, r.width > 1, r.height > 1 else { return nil }
+            var p = CGPath(roundedRect: r, cornerWidth: Self.holeRadius, cornerHeight: Self.holeRadius, transform: nil)
+            // Subtract normal windows above this one that aren't sharp themselves.
+            let occluders = all[..<wi].filter { isNormal($0) && !sharpIDs.contains($0.id) && $0.frame.intersects(w.frame) }
+            for c in occluders {
+                let cr = local(c.frame)
+                guard !cr.isNull else { continue }
+                p = p.subtracting(CGPath(roundedRect: cr, cornerWidth: Self.holeRadius, cornerHeight: Self.holeRadius, transform: nil))
+            }
+            return p
+        }
+    }
+
+    /// Poll the window list at 20 Hz (focus changes inside one app have no notification).
+    private func adjustPolling() {
+        let want: TimeInterval = 1.0 / 20
+        guard timer?.timeInterval != want else { return }
+        timer?.invalidate()
+        let t = Timer(timeInterval: want, repeats: true) { [weak self] _ in self?.tick() }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     /// Order overlay `o` directly below window `id`, only if it isn't already there.
@@ -200,24 +241,12 @@ final class Engine {
         anchors[o.displayID] = id
     }
 
-    /// Cut holes for sharp windows that sit below this overlay and overlap its display.
-    private func setHoles(_ o: OverlayWindow, sharp: [WinInfo], anchor: Int, ids: [Int]) {
-        guard let ai = ids.firstIndex(of: anchor) else { o.setHoles([]); return }
-        let rects = sharp.compactMap { w -> CGRect? in
-            guard w.id != anchor, let wi = ids.firstIndex(of: w.id), wi > ai else { return nil }
-            let r = w.frame.intersection(o.frame)
-            guard !r.isNull, r.width > 1 else { return nil }
-            return r.offsetBy(dx: -o.frame.minX, dy: -o.frame.minY)
-        }
-        o.setHoles(rects)
-    }
-
     private func setShown(_ o: OverlayWindow, _ v: Bool) {
         guard shown[o.displayID] != v else { return }
         let first = shown[o.displayID] == nil
         shown[o.displayID] = v
-        if v { o.applyStyle() }
-        o.setShown(v, transition: first && !v ? .none : s.transition, cursor: NSEvent.mouseLocation)
+        if v { o.applyStyle(animated: false) }
+        o.setShown(v, cursor: NSEvent.mouseLocation, animated: !(first && !v))
         if !v { anchors[o.displayID] = nil }
     }
 

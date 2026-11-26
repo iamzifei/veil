@@ -13,7 +13,7 @@ import Combine
 
 enum Onboarding {
     /// Bump when the guide changes enough that everyone should see it again.
-    static let currentVersion = 1
+    static let currentVersion = 2   // 2 = 1.2 settings panel
     static let defaultsKey = "onboardingSeenVersion"
 
     static var shouldShow: Bool { UserDefaults.standard.integer(forKey: defaultsKey) < currentVersion }

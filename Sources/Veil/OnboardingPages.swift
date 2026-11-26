@@ -38,44 +38,23 @@ enum VeilGuide {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // Page 3: menu-bar icon. The menu is drawn from the app's real menu strings.
+    // Page 3: the settings panel docked at the right edge (a real screenshot of it),
+    // over a veiled desktop, with the click / right-click tags.
     private static var menuBarArt: some View {
         ZStack(alignment: .topTrailing) {
-            ShotImage(name: "tint").frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(spacing: 0) {
-                HStack(spacing: 14) {
-                    Spacer()
-                    Image(systemName: "circle.lefthalf.filled").font(.system(size: 13))
-                        .padding(.horizontal, 7).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.55)))
-                    Image(systemName: "wifi").font(.system(size: 12))
-                    Image(systemName: "battery.75percent").font(.system(size: 14))
-                    Text("9:41").font(.system(size: 12, weight: .medium))
-                }
-                .foregroundStyle(.black.opacity(0.8))
-                .padding(.horizontal, 14).frame(height: 26)
-                .background(Color.white.opacity(0.45))
-                MenuMock(rows: [
-                    .item(L("Turn Veil Off"), trailing: shortcut(.toggle), symbol: "power"),
-                    .separator,
-                    .item(Mode.ambient.title, symbol: "sun.haze", checked: true),
-                    .item(Mode.deep.title, symbol: "moon.haze"),
-                    .item(L("Switch Mode"), trailing: shortcut(.switchMode), symbol: "arrow.triangle.2.circlepath"),
-                    .separator,
-                    .item(LF("Ignore %@", L("onboarding.veil.p3.app")), trailing: shortcut(.ignoreApp), symbol: "eye.slash"),
-                    .item(L("Peek"), symbol: "eye"),
-                    .separator,
-                    .item(L("Settings…"), trailing: shortcut(.toggleControls), symbol: "slider.horizontal.3"),
-                ], width: 300)
-                .padding(.top, 4).padding(.trailing, 10).frame(maxWidth: .infinity, alignment: .trailing)
-            }
+            ShotImage(name: "deep").frame(maxWidth: .infinity, maxHeight: .infinity)
+            ShotImage(name: "panel")
+                .frame(width: 150)
+                .frame(maxHeight: .infinity)
+                .shadow(color: .black.opacity(0.25), radius: 8)
             VStack(alignment: .leading, spacing: 10) {
                 Tag(text: L("onboarding.veil.p3.tag1"))
                 Tag(text: L("onboarding.veil.p3.tag2"))
             }
-            .padding(.leading, 18).padding(.top, 60)
+            .padding(.leading, 18).padding(.top, 40)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .clipped()
     }
 
     private static func shortcut(_ a: Action) -> String { Settings.shared.shortcut(a)?.display ?? "" }
@@ -83,7 +62,7 @@ enum VeilGuide {
     // Page 4: three looks (existing marketing stills).
     private static var looksArt: some View {
         HStack(spacing: 10) {
-            ForEach([("tint", "onboarding.veil.p4.cap1"), ("deep", "onboarding.veil.p4.cap2"), ("mono", "onboarding.veil.p4.cap3")], id: \.0) { img, cap in
+            ForEach([("ambient", "onboarding.veil.p4.cap1"), ("deep", "onboarding.veil.p4.cap2"), ("mono", "onboarding.veil.p4.cap3")], id: \.0) { img, cap in
                 VStack(spacing: 6) {
                     ShotImage(name: img)
                         .frame(width: 170, height: 230).clipped()

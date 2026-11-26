@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "docs/index.html"
+        ],
+        "createdAt": "2026-11-26T15:07:12.390Z",
+        "reason": "Claude: the purple/blue gradient and orbs are the simulated macOS wallpaper inside the live demo desk (intentional fixture, pre-existing since 1.0)"
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "docs/index.html"
+        ],
+        "createdAt": "2026-11-26T15:07:12.415Z",
+        "reason": "Claude: radial orbs are the fake desktop wallpaper in the live demo (intentional fixture, pre-existing)"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/index.html"
+        ],
+        "createdAt": "2026-11-26T15:07:12.437Z",
+        "reason": "Claude: L83 is the full-bleed demo desk canvas (fake macOS screen edge-to-edge by design), pre-existing"
+      }
+    ]
+  }
+}

@@ -92,7 +92,7 @@ final class Gestures {
             }
         }
 
-        guard shake.feed(x: p.x, time: ProcessInfo.processInfo.systemUptime) else { return }
+        guard s.shakeEnabled, shake.feed(x: p.x, time: ProcessInfo.processInfo.systemUptime) else { return }
         // Peek takes precedence when its modifier is held.
         if s.shakePeek != .off, !s.shakePeek.flags.isEmpty, mods == s.shakePeek.flags {
             startPeek(modifier: s.shakePeek.flags)
@@ -183,18 +183,25 @@ final class BarHider {
         return out?.stringValue
     }
 
+    /// What is currently forced hidden (nil = nothing).
+    private var appliedMode: AutoHide = .off
+
     func set(active: Bool) {
-        let want = active && Settings.shared.autoHideBars
-        guard want != applied else { return }
-        applied = want
+        let mode = active ? Settings.shared.autoHide : .off
+        guard mode != appliedMode else { return }
+        appliedMode = mode
+        applied = mode != .off
         queue.async { [self] in
-            if want {
+            if mode != .off {
                 if original == nil {
                     let d = run("tell application \"System Events\" to get autohide of dock preferences") == "true"
                     let m = run("tell application \"System Events\" to get autohide menu bar of dock preferences") == "true"
                     original = (d, m)
                 }
-                _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {true, true}")
+                let o = original!
+                // Hide what this mode asks for; leave the other bar as the user had it.
+                let dock = mode.hidesDock || o.dock, menu = mode.hidesMenuBar || o.menu
+                _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(dock), \(menu)}")
             } else if let o = original {
                 _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(o.dock), \(o.menu)}")
                 original = nil
@@ -209,5 +216,6 @@ final class BarHider {
             _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(o.dock), \(o.menu)}")
         }
         applied = false
+        appliedMode = .off
     }
 }
