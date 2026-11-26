@@ -67,6 +67,7 @@ final class Gestures {
         NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
             self?.mouseIsDown = false
             self?.engine?.dragging = false
+            self?.engine?.kick()          // a click may have focused another window
         }
     }
 
@@ -175,6 +176,37 @@ final class BarHider {
     private var original: (dock: Bool, menu: Bool)?
     private var applied = false
     private let queue = DispatchQueue(label: "veil.barhider")
+    private var sigterm: DispatchSourceSignal?
+
+    // Crash / kill recovery (same idea as the reference's "autoHide.recovery.*" keys): the user's
+    // own settings are saved BEFORE we change anything, and a dirty flag stays set until they are
+    // put back. If Veil dies while bars are hidden, the next launch restores them.
+    private static let dirtyKey = "autoHide.recovery.dirty"
+    private static let dockKey = "autoHide.recovery.originalDock"
+    private static let menuKey = "autoHide.recovery.originalMenu"
+
+    init() {
+        let d = UserDefaults.standard
+        if d.bool(forKey: Self.dirtyKey) {
+            let dock = d.bool(forKey: Self.dockKey), menu = d.bool(forKey: Self.menuKey)
+            queue.async { [self] in
+                _ = run(Self.setScript(dock: dock, menu: menu))
+                UserDefaults.standard.set(false, forKey: Self.dirtyKey)
+            }
+        }
+        // `kill` / logout sends SIGTERM, which skips applicationWillTerminate: restore, then exit.
+        // A no-op handler (not SIG_IGN, which child processes such as Sparkle's installer would
+        // inherit) keeps the default "terminate" action away so the dispatch source sees the signal.
+        signal(SIGTERM) { _ in }
+        let src = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        src.setEventHandler { [weak self] in self?.restoreNow(timeout: 2); exit(0) }
+        src.resume()
+        sigterm = src
+    }
+
+    private static func setScript(dock: Bool, menu: Bool) -> String {
+        "tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(dock), \(menu)}"
+    }
 
     private func run(_ src: String) -> String? {
         var err: NSDictionary?
@@ -194,27 +226,46 @@ final class BarHider {
         queue.async { [self] in
             if mode != .off {
                 if original == nil {
-                    let d = run("tell application \"System Events\" to get autohide of dock preferences") == "true"
-                    let m = run("tell application \"System Events\" to get autohide menu bar of dock preferences") == "true"
-                    original = (d, m)
+                    // If either read fails (no Automation access yet, System Events busy) change nothing:
+                    // saving a guessed "false" would later switch off the user's own auto-hide.
+                    guard let d = run("tell application \"System Events\" to get autohide of dock preferences"),
+                          let m = run("tell application \"System Events\" to get autohide menu bar of dock preferences") else {
+                        appliedModeFailed()
+                        return
+                    }
+                    original = (d == "true", m == "true")
+                    let ud = UserDefaults.standard
+                    ud.set(d == "true", forKey: Self.dockKey); ud.set(m == "true", forKey: Self.menuKey); ud.set(true, forKey: Self.dirtyKey)
                 }
                 let o = original!
                 // Hide what this mode asks for; leave the other bar as the user had it.
-                let dock = mode.hidesDock || o.dock, menu = mode.hidesMenuBar || o.menu
-                _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(dock), \(menu)}")
+                _ = run(Self.setScript(dock: mode.hidesDock || o.dock, menu: mode.hidesMenuBar || o.menu))
             } else if let o = original {
-                _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(o.dock), \(o.menu)}")
+                _ = run(Self.setScript(dock: o.dock, menu: o.menu))
                 original = nil
+                UserDefaults.standard.set(false, forKey: Self.dirtyKey)
             }
         }
     }
 
-    /// Synchronous restore for app termination.
-    func restoreNow() {
-        guard applied, let o = original else { return }
-        queue.sync {
-            _ = run("tell application \"System Events\" to tell dock preferences to set {autohide, autohide menu bar} to {\(o.dock), \(o.menu)}")
+    /// Reading the originals failed: forget that we "applied" anything so the next activation retries.
+    private func appliedModeFailed() {
+        DispatchQueue.main.async { [self] in appliedMode = .off; applied = false }
+    }
+
+    /// Restore for app termination. Waits at most `timeout` seconds (System Events can hang);
+    /// if it doesn't finish, the dirty flag stays set and the next launch restores instead.
+    func restoreNow(timeout: TimeInterval = 3) {
+        let done = DispatchSemaphore(value: 0)
+        queue.async { [self] in
+            if let o = original {
+                _ = run(Self.setScript(dock: o.dock, menu: o.menu))
+                original = nil
+                UserDefaults.standard.set(false, forKey: Self.dirtyKey)
+            }
+            done.signal()
         }
+        _ = done.wait(timeout: .now() + timeout)
         applied = false
         appliedMode = .off
     }

@@ -4,7 +4,7 @@
 #   scripts/build.sh release    → Developer ID sign (hardened runtime), notarize if
 #                                 the notarytool keychain profile ($NOTARY_PROFILE, default candela-notary — same Apple team) works, then DMG.
 set -euo pipefail
-NAME="Veil"; ID="dev.jamesai.veil"; VERSION="${VERSION:-1.2.0}"
+NAME="Veil"; ID="dev.jamesai.veil"; VERSION="${VERSION:-1.2.1}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 swift build -c release --arch arm64 --arch x86_64
 BIN_DIR="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)"

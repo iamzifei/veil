@@ -121,7 +121,7 @@ final class OverlayWindow: NSWindow {
             content.addSublayer(l)
         }
         backdrop.setValue(true, forKey: "windowServerAware")   // sample other apps' windows
-        backdrop.setValue(1.0, forKey: "scale")
+        backdrop.setValue(1.0, forKey: "scale")   // adjusted per blur radius in applyStyle()
         grain.contentsScale = scale
 
         maskRoot.frame = content.bounds
@@ -158,6 +158,9 @@ final class OverlayWindow: NSWindow {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         var filters: [NSObject] = []
         let sigma = s.blur * 0.5
+        // Sample the backdrop at lower resolution for big radii: measured σ is unchanged
+        // (49.75 / 49.0 / 50.5 pt at scale 1 / 0.5 / 0.25 for σ 50), and far fewer pixels get blurred.
+        backdrop.setValue(sigma >= 20 ? 0.25 : (sigma >= 8 ? 0.5 : 1.0), forKey: "scale")
         if sigma > 0.05, let f = PrivateCA.filter("gaussianBlur") {
             f.setValue(Self.inputRadius(sigma: sigma), forKey: "inputRadius")
             f.setValue(true, forKey: "inputNormalizeEdges")

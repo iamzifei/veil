@@ -85,3 +85,12 @@ final class MeasuredModelTests: XCTestCase {
         XCTAssertEqual(s.effectiveMonochrome, 0.5)
     }
 }
+
+final class PanelMeasurementTests: XCTestCase {
+    /// Edge fade measured on the reference: 0 at the edge → 1 at 56 pt, never decreasing.
+    func testEdgeFadeRamp() {
+        let r = EdgeFade.ramp
+        XCTAssertEqual(r.first?.a, 0); XCTAssertEqual(r.last?.a, 1); XCTAssertEqual(r.last?.pt, 56)
+        for (a, b) in zip(r, r.dropFirst()) { XCTAssertLessThan(a.pt, b.pt); XCTAssertLessThanOrEqual(a.a, b.a) }
+    }
+}

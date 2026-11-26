@@ -47,7 +47,7 @@ enum Apps {
 
 // MARK: - Theme
 
-enum Glass {
+enum GT {
     static let tileRadius: CGFloat = 32
     static let pillHeight: CGFloat = 62
     static let text = Color.white
@@ -99,27 +99,44 @@ struct FrostedBackground: NSViewRepresentable {
     func updateNSView(_ v: NSView, context: Context) { v.layer?.cornerRadius = radius }
 }
 
-/// The frosted tile look: blur + a faint white wash + a top-lit hairline.
+/// Dark tint over clear glass for plain tiles, calibrated against the reference
+/// (tile over pure white → 172/255, over pure black → ≈22/255).
+enum GlassCalib {
+    /// Plain tiles: black at 35 % over clear glass (Veil 172 / 21 vs reference 172 / 22).
+    static let tileTint = Color.black.opacity(0.35)
+    /// Accent cards (welcome): accent at 90 % (light area 26,136,255 vs reference 26,134,254).
+    static let accentAlpha = 0.9
+}
+
+/// The tile look. On macOS 26+ this is the system Liquid Glass, exactly what the reference
+/// uses (`glassEffect(Glass.clear[.tint(color)], in: shape)`): the rim highlight, edge
+/// refraction and the way the tint mixes with what's behind all come from the system.
+/// Earlier macOS falls back to a measured frosted look (blur + neutral grey wash + hairline).
 struct GlassTile: ViewModifier {
-    var radius: CGFloat = Glass.tileRadius
+    var radius: CGFloat = GT.tileRadius
     var fill: Color? = nil
     func body(content: Content) -> some View {
-        content
-            .background {
-                ZStack {
-                    FrostedBackground(radius: radius)
-                    if let fill { RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fill) }
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.06), .white.opacity(0.14)],
-                                                     startPoint: .top, endPoint: .bottom), lineWidth: 1)
+        if #available(macOS 26.0, *) {
+            content.glassEffect(SwiftUI.Glass.clear.tint(fill ?? GlassCalib.tileTint),
+                                in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+        } else {
+            content
+                .background {
+                    ZStack {
+                        FrostedBackground(radius: radius)
+                        if let fill { RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fill) }
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.06), .white.opacity(0.14)],
+                                                         startPoint: .top, endPoint: .bottom), lineWidth: 1)
+                    }
                 }
-            }
-            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        }
     }
 }
 
 extension View {
-    func glass(radius: CGFloat = Glass.tileRadius, fill: Color? = nil) -> some View { modifier(GlassTile(radius: radius, fill: fill)) }
+    func glass(radius: CGFloat = GT.tileRadius, fill: Color? = nil) -> some View { modifier(GlassTile(radius: radius, fill: fill)) }
 }
 
 /// A small capsule button ("More settings", "Check Updates", "Got it!").
@@ -128,10 +145,10 @@ struct ChipButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(Glass.text.opacity(configuration.isPressed ? 0.6 : 0.92))
+            .foregroundStyle(GT.text.opacity(configuration.isPressed ? 0.6 : 0.92))
             .padding(.horizontal, 14).frame(height: 26)
-            .background(Capsule().fill(Color.white.opacity(prominent ? 0.24 : 0.14)))
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            .background { if prominent { Capsule().fill(Color.white.opacity(0.24)) } }
+            .glass(radius: 13)
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
@@ -140,10 +157,22 @@ struct ChipButtonStyle: ButtonStyle {
 /// Whole-tile press feedback: a quick squash, like Control Center tiles.
 struct TileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        HoverLift(pressed: configuration.isPressed) { configuration.label }
+    }
+}
+
+/// Measured on the reference: hovering a control brightens it by ≈6/255 over 0.17 s (ease-out);
+/// pressing adds ≈3/255 for as long as the button is down.
+struct HoverLift<Content: View>: View {
+    var pressed: Bool
+    @ViewBuilder var content: Content
+    @State private var hovering = false
+    var body: some View {
+        content
             .contentShape(Rectangle())
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.65), value: configuration.isPressed)
+            .brightness((hovering ? 0.024 : 0) + (pressed ? 0.012 : 0))
+            .animation(.easeOut(duration: 0.17), value: hovering)
+            .onHover { hovering = $0 }
     }
 }
 
@@ -177,8 +206,8 @@ struct TickSlider: View {
             let t = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
             let x = (w - thumbW) * min(max(t, 0), 1)
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.16)).frame(height: 4)
-                Capsule().fill(accent).frame(width: x + thumbW / 2, height: 4)
+                Capsule().fill(Color.white.opacity(0.16)).frame(height: 6)
+                Capsule().fill(accent).frame(width: x + thumbW / 2, height: 6)
                 HStack(spacing: 0) {
                     ForEach(0..<ticks, id: \.self) { i in
                         Circle().fill(Color.white.opacity(0.32)).frame(width: 2.2, height: 2.2)
@@ -219,7 +248,7 @@ struct ChipMenu<T: Hashable & Identifiable>: View {
                 Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
             }
             .font(.system(size: 13))
-            .foregroundStyle(Glass.text.opacity(0.85))
+            .foregroundStyle(GT.text.opacity(0.85))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
@@ -232,7 +261,7 @@ struct ChipMenu<T: Hashable & Identifiable>: View {
 struct DotPair: View {
     var body: some View {
         VStack(spacing: 3) { Circle().frame(width: 4, height: 4); Circle().frame(width: 4, height: 4) }
-            .foregroundStyle(Glass.text.opacity(0.85))
+            .foregroundStyle(GT.text.opacity(0.85))
     }
 }
 
@@ -241,8 +270,8 @@ struct RowTitle: View {
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
-            if let subtitle { Text(subtitle).font(.system(size: 10.5)).foregroundStyle(Glass.secondary) }
+            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
+            if let subtitle { Text(subtitle).font(.system(size: 10.5)).foregroundStyle(GT.secondary) }
         }
     }
 }
@@ -268,7 +297,9 @@ struct SettingsView: View {
     @State private var copied: String?
 
     private var accent: Color { panelAccent(s) }
-    private let spring = Animation.spring(response: 0.42, dampingFraction: 0.82)
+    /// Measured on the reference: tint row → swatches (card below moves 32 pt) fits response 0.26 /
+    /// damping 0.73; Gestures expanding fits 0.265 / 0.69 — one shared spring.
+    private let spring = Animation.spring(response: 0.265, dampingFraction: 0.71)
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -277,9 +308,9 @@ struct SettingsView: View {
                 HStack(spacing: 14) { ignorePill; powerButton }
                 modePill.padding(.top, 14)
                 lookCard.padding(.top, 38)
-                groupsCard.padding(.top, 40)
+                groupsCard.padding(.top, 38)
                 Button(s.moreSettings ? L("Less settings") : L("More settings")) {
-                    withAnimation(spring) { s.moreSettings.toggle() }
+                    s.moreSettings.toggle()            // measured: instant, no animation
                 }
                 .buttonStyle(ChipButtonStyle())
                 .padding(.top, 38)
@@ -293,13 +324,13 @@ struct SettingsView: View {
                         aboutCard.padding(.top, 38)
                         creditsCard.padding(.top, 38)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .padding(.leading, 40).padding(.trailing, 16).padding(.top, 57).padding(.bottom, 40)
             .id(language.effective.rawValue)
         }
         .frame(width: SettingsPanel.width)
+        .mask(EdgeFade())
         .environment(\.colorScheme, .dark)
         .tint(accent)
         .animation(spring, value: s.welcomeDismissed)
@@ -333,7 +364,7 @@ struct SettingsView: View {
             .padding(.top, 32)
         }
         .padding(.horizontal, 24).padding(.top, 26).padding(.bottom, 24)
-        .glass(fill: accent.opacity(0.62))
+        .glass(fill: accent.opacity(GlassCalib.accentAlpha))
     }
 
     // MARK: Top row
@@ -347,7 +378,7 @@ struct SettingsView: View {
                 Group {
                     if let icon = app?.icon { Image(nsImage: icon).resizable() }
                     else {
-                        RoundedRectangle(cornerRadius: 7).strokeBorder(Glass.secondary, style: StrokeStyle(lineWidth: 1.6, dash: [4, 3]))
+                        RoundedRectangle(cornerRadius: 7).strokeBorder(GT.secondary, style: StrokeStyle(lineWidth: 1.6, dash: [4, 3]))
                             .padding(4)
                     }
                 }
@@ -355,11 +386,11 @@ struct SettingsView: View {
                 RowTitle(title: ignored ? L("Ignored") : L("Ignore"), subtitle: app?.localizedName ?? L("Current App"))
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                Image(systemName: ignored ? "minus" : "plus").font(.system(size: 17, weight: .light)).foregroundStyle(Glass.secondary)
+                Image(systemName: ignored ? "minus" : "plus").font(.system(size: 17, weight: .light)).foregroundStyle(GT.secondary)
             }
             .padding(.leading, 16).padding(.trailing, 18)
-            .frame(height: Glass.pillHeight)
-            .glass(radius: Glass.pillHeight / 2)
+            .frame(height: GT.pillHeight)
+            .glass(radius: GT.pillHeight / 2)
         }
         .buttonStyle(TileButtonStyle())
         .disabled(app == nil)
@@ -369,30 +400,37 @@ struct SettingsView: View {
     private var powerButton: some View {
         Button { withAnimation(spring) { s.enabled.toggle() } } label: {
             Image(systemName: "power").font(.system(size: 21, weight: .medium))
-                .foregroundStyle(s.enabled ? accent : Glass.text.opacity(0.85))
-                .frame(width: 80, height: Glass.pillHeight)
-                .glass(radius: Glass.pillHeight / 2, fill: s.enabled ? .white : nil)
+                .foregroundStyle(s.enabled ? accent : GT.text.opacity(0.85))
+                .frame(width: 80, height: GT.pillHeight)
+                // On: a solid white pill (measured 255/255 on the reference); off: plain glass.
+                .background { if s.enabled { Capsule(style: .continuous).fill(.white) } }
+                .glass(radius: GT.pillHeight / 2)
         }
         .buttonStyle(TileButtonStyle())
         .help(s.enabled ? L("Turn Veil Off") : L("Turn Veil On"))
     }
 
+    /// Only the trailing "Deep ⋮" part switches the mode (measured: a click on the left of the
+    /// pill gives press feedback but doesn't change the mode).
     private var modePill: some View {
-        Button { withAnimation(spring) { s.mode = s.mode == .deep ? .ambient : .deep } } label: {
-            HStack(spacing: 14) {
-                ModeDot(mode: s.mode).frame(width: 34, height: 34)
-                Text(L("Mode")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
-                Spacer()
-                Text(s.mode.title).font(.system(size: 13)).foregroundStyle(Glass.text.opacity(0.85))
-                    .contentTransition(.opacity)
-                DotPair().padding(.leading, 4)
+        HStack(spacing: 14) {
+            ModeDot(mode: s.mode).frame(width: 34, height: 34)
+            Text(L("Mode")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
+            Spacer()
+            Button { withAnimation(spring) { s.mode = s.mode == .deep ? .ambient : .deep } } label: {
+                HStack(spacing: 4) {
+                    Text(s.mode.title).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85))
+                        .contentTransition(.opacity)
+                    DotPair().padding(.leading, 4)
+                }
+                .padding(.vertical, 12).padding(.leading, 10)
             }
-            .padding(.horizontal, 18)
-            .frame(height: Glass.pillHeight)
-            .glass(radius: Glass.pillHeight / 2)
+            .buttonStyle(TileButtonStyle())
+            .help(s.mode == .deep ? L("mode.deep.help") : L("mode.ambient.help"))
         }
-        .buttonStyle(TileButtonStyle())
-        .help(s.mode == .deep ? L("mode.deep.help") : L("mode.ambient.help"))
+        .padding(.horizontal, 18)
+        .frame(height: GT.pillHeight)
+        .glass(radius: GT.pillHeight / 2)
     }
 
     // MARK: Look
@@ -410,14 +448,14 @@ struct SettingsView: View {
             sliderRow(icon: AnyView(Image(systemName: "water.waves").font(.system(size: 15))), title: L("Grain"),
                       value: $s.grain, range: 0...1)
         }
-        .padding(.vertical, 14)
+        .padding(.vertical, 12)
         .glass()
     }
 
     private func sliderRow(icon: AnyView, title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         HStack(spacing: 0) {
-            icon.foregroundStyle(Glass.text).frame(width: 30)
-            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+            icon.foregroundStyle(GT.text).frame(width: 30)
+            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 .frame(width: 70, alignment: .leading).padding(.leading, 14)
             TickSlider(value: value, range: range, accent: accent)
         }
@@ -428,11 +466,11 @@ struct SettingsView: View {
         VStack(spacing: 10) {
             HStack {
                 Button { withAnimation(spring) { tintExpanded = false } } label: {
-                    Image(systemName: "chevron.left").font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                    Image(systemName: "chevron.left").font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 }
                 .buttonStyle(TileButtonStyle())
                 Spacer()
-                Text(s.tintPreset == .custom ? s.tintHex : s.tintPreset.title).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+                Text(s.tintPreset == .custom ? s.tintHex : s.tintPreset.title).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
             }
             HStack(spacing: 4) {
                 ForEach(TintPreset.allCases.filter { $0 != .custom }) { p in
@@ -465,7 +503,7 @@ struct SettingsView: View {
     private var groupsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(L("App Groups")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                Text(L("App Groups")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 Spacer()
                 CircleIconButton(symbol: "plus") {
                     let ids = Apps.pick(prompt: L("Create Group"), message: L("Choose Apps for Group"))
@@ -475,25 +513,25 @@ struct SettingsView: View {
             }
             .padding(.bottom, s.groups.isEmpty ? 26 : 8)
             if s.groups.isEmpty {
-                Text(L("Pair apps that stay focused together")).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+                Text(L("Pair apps that stay focused together")).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
             }
             ForEach(s.groups) { g in groupRow(g) }
         }
-        .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 36)
+        .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 38)
         .glass()
     }
 
     private func groupRow(_ g: AppGroup) -> some View {
         let open = expandedGroup == g.id
         return VStack(alignment: .leading, spacing: 8) {
-            Divider().overlay(Glass.divider)
+            Divider().overlay(GT.divider)
             Button { withAnimation(spring) { expandedGroup = open ? nil : g.id } } label: {
                 HStack(spacing: 10) {
                     StackedIcons(bundles: g.bundleIDs)
                     Text(g.bundleIDs.map(Apps.name).joined(separator: ", ")).font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(Glass.text).lineLimit(1)
+                        .foregroundStyle(GT.text).lineLimit(1)
                     Spacer()
-                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Glass.secondary)
+                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(GT.secondary)
                         .rotationEffect(.degrees(open ? 180 : 0))
                 }
             }
@@ -537,7 +575,7 @@ struct SettingsView: View {
                     RowTitle(title: L("Multi-screen mode"),
                              subtitle: Engine.separateSpaces ? nil : L("“Displays have separate Spaces” is off"))
                     Spacer()
-                    Text(s.screenMode.title).font(.system(size: 13)).foregroundStyle(Glass.text.opacity(0.85))
+                    Text(s.screenMode.title).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85))
                     DotPair().padding(.leading, 6)
                 }
             }
@@ -545,16 +583,13 @@ struct SettingsView: View {
             .help(s.screenMode == .perScreen ? L("Each display keeps its own front window sharp.") : L("Only the focused window is sharp; every other display is veiled."))
             divider
             HStack {
-                RowTitle(title: L("Auto-hide"), subtitle: s.autoHide == .off ? L("Menu bar and Dock while Veil is on") : L("Asks for Automation access once"))
+                RowTitle(title: L("Auto-hide"), subtitle: AutomationAccess.status.map { $0 ? L("Permissions granted") : L("Grant permissions") })
                 Spacer()
                 ChipMenu(options: AutoHide.allCases, selection: $s.autoHide) { $0.title }
             }
             .cardRow()
             divider
             Toggle(isOn: $s.blurStageManager) { RowTitle(title: L("Blur Stage Manager"), subtitle: L("Cover thumbnails with the overlay")) }
-                .toggleStyle(GlassToggleStyle(accent: accent)).cardRow()
-            divider
-            Toggle(isOn: $s.hideWhileDragging) { RowTitle(title: L("Hide while dragging"), subtitle: L("Drop files onto blurred windows")) }
                 .toggleStyle(GlassToggleStyle(accent: accent)).cardRow()
             divider
             HStack {
@@ -568,85 +603,106 @@ struct SettingsView: View {
         .glass()
     }
 
-    private var divider: some View { Rectangle().fill(Glass.divider).frame(height: 1).padding(.horizontal, 22) }
+    /// Measured on the reference: while the card grows (spring), the old content slides out
+    /// of the top and the new content rises in from the bottom.
+    static let expandTransition = AnyTransition.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
+                                                            removal: .move(edge: .top).combined(with: .opacity))
+
+    private var divider: some View { Rectangle().fill(GT.divider).frame(height: 1).padding(.horizontal, 22) }
 
     // MARK: Gestures
 
-    @ViewBuilder private var gesturesSection: some View {
-        if gesturesOpen {
-            VStack(alignment: .leading, spacing: 0) {
+    private var gesturesSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if gesturesOpen {
+              VStack(alignment: .leading, spacing: 0) {
                 subpageHeader(L("Gestures")) { gesturesOpen = false }
-                Toggle(isOn: $s.shakeEnabled) { Text(L("Shake gestures")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text) }
+                Toggle(isOn: $s.shakeEnabled) { Text(L("Shake gestures")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text) }
                     .toggleStyle(GlassToggleStyle(accent: accent)).padding(.vertical, 6)
                 Group {
                     labelled(L("Shake to toggle")) { ChipMenu(options: ShakeModifier.allCases, selection: $s.shakeToggle) { $0.title } }
                     labelled(L("Hold + Shake to peek")) { ChipMenu(options: ShakeModifier.allCases, selection: $s.shakePeek) { $0.title } }
                 }
                 .opacity(s.shakeEnabled ? 1 : 0.4).disabled(!s.shakeEnabled)
-                Rectangle().fill(Glass.divider).frame(height: 1).padding(.vertical, 10)
-                Text(L("Alternative")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
-                Toggle(isOn: $s.cornerPeek) { Text(L("Peek at corners")).font(.system(size: 13)).foregroundStyle(Glass.text.opacity(0.85)) }
+                Rectangle().fill(GT.divider).frame(height: 1).padding(.vertical, 10)
+                Text(L("Alternative")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
+                Toggle(isOn: $s.cornerPeek) { Text(L("Peek at corners")).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85)) }
                     .toggleStyle(GlassToggleStyle(accent: accent)).padding(.vertical, 6)
-                Rectangle().fill(Glass.divider).frame(height: 1).padding(.vertical, 10)
-                Text(L("Sensitivity")).font(.system(size: 13)).foregroundStyle(Glass.text.opacity(0.85))
+                Rectangle().fill(GT.divider).frame(height: 1).padding(.vertical, 10)
+                Text(L("Sensitivity")).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85))
                 HStack(spacing: 8) {
-                    Text(L("Low")).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+                    Text(L("Low")).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
                     TickSlider(value: $s.sensitivity, accent: accent)
-                    Text(L("High")).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+                    Text(L("High")).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
                 }
+                Rectangle().fill(GT.divider).frame(height: 1).padding(.vertical, 10)
+                Toggle(isOn: $s.hideWhileDragging) { Text(L("Hide while dragging")).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85)) }
+                    .toggleStyle(GlassToggleStyle(accent: accent)).padding(.vertical, 4)
+              }
+              .padding(.vertical, 16)
+              .transition(Self.expandTransition)
+            } else {
+                collapsedRow(symbol: "computermouse.fill", title: L("Gestures")) { gesturesOpen = true }
+                    .transition(Self.expandTransition)
             }
-            .padding(.horizontal, 22).padding(.vertical, 16)
-            .glass()
-            .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
-        } else {
-            collapsedPill(symbol: "computermouse.fill", title: L("Gestures")) { gesturesOpen = true }
         }
+        .padding(.horizontal, 22)
+        .frame(minHeight: GT.pillHeight)
+        .clipShape(RoundedRectangle(cornerRadius: gesturesOpen ? GT.tileRadius : GT.pillHeight / 2, style: .continuous))
+        .glass(radius: gesturesOpen ? GT.tileRadius : GT.pillHeight / 2)
+
     }
 
     private func labelled<C: View>(_ t: String, @ViewBuilder _ c: () -> C) -> some View {
-        HStack { Text(t).font(.system(size: 13)).foregroundStyle(Glass.text.opacity(0.85)); Spacer(); c() }.padding(.vertical, 5)
+        HStack { Text(t).font(.system(size: 13)).foregroundStyle(GT.text.opacity(0.85)); Spacer(); c() }.padding(.vertical, 5)
     }
 
     private func subpageHeader(_ title: String, back: @escaping () -> Void) -> some View {
         HStack {
             Button { withAnimation(spring) { back() } } label: {
-                Image(systemName: "chevron.left").font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text).frame(width: 24, height: 24)
+                Image(systemName: "chevron.left").font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text).frame(width: 24, height: 24)
             }
             .buttonStyle(TileButtonStyle())
             Spacer()
-            Text(title).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+            Text(title).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
         }
         .padding(.bottom, 8)
     }
 
-    private func collapsedPill(symbol: String, title: String, open: @escaping () -> Void) -> some View {
+    private func collapsedRow(symbol: String, title: String, open: @escaping () -> Void) -> some View {
         Button { withAnimation(spring) { open() } } label: {
             HStack(spacing: 14) {
-                Image(systemName: symbol).font(.system(size: 17)).foregroundStyle(Glass.text).frame(width: 30)
-                Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                Image(systemName: symbol).font(.system(size: 17)).foregroundStyle(GT.text).frame(width: 30)
+                Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 Spacer()
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Glass.secondary)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(GT.secondary)
             }
-            .padding(.horizontal, 22).frame(height: Glass.pillHeight)
-            .glass(radius: Glass.pillHeight / 2)
+            .frame(height: GT.pillHeight)
         }
         .buttonStyle(TileButtonStyle())
     }
 
     // MARK: Shortcuts
 
-    @ViewBuilder private var shortcutsSection: some View {
-        if shortcutsOpen {
-            VStack(alignment: .leading, spacing: 4) {
-                subpageHeader(L("Shortcuts")) { shortcutsOpen = false }
-                ForEach(Action.allCases) { a in ShortcutRow(action: a, onChange: reloadHotkeys) }
+    private var shortcutsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if shortcutsOpen {
+                VStack(alignment: .leading, spacing: 4) {
+                    subpageHeader(L("Shortcuts")) { shortcutsOpen = false }
+                    ForEach(Action.allCases) { a in ShortcutRow(action: a, onChange: reloadHotkeys) }
+                }
+                .padding(.vertical, 16)
+                .transition(Self.expandTransition)
+            } else {
+                collapsedRow(symbol: "command", title: L("Shortcuts")) { shortcutsOpen = true }
+                    .transition(Self.expandTransition)
             }
-            .padding(.horizontal, 22).padding(.vertical, 16)
-            .glass()
-            .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
-        } else {
-            collapsedPill(symbol: "command", title: L("Shortcuts")) { shortcutsOpen = true }
         }
+        .padding(.horizontal, 22)
+        .frame(minHeight: GT.pillHeight)
+        .clipShape(RoundedRectangle(cornerRadius: shortcutsOpen ? GT.tileRadius : GT.pillHeight / 2, style: .continuous))
+        .glass(radius: shortcutsOpen ? GT.tileRadius : GT.pillHeight / 2)
+
     }
 
     // MARK: Monochrome / Transition / Reveal
@@ -655,8 +711,8 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             Toggle(isOn: $s.monochromeOn) {
                 HStack(spacing: 14) {
-                    Image(systemName: "camera.filters").font(.system(size: 16)).foregroundStyle(Glass.text).frame(width: 30)
-                    Text(L("Monochrome")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                    Image(systemName: "camera.filters").font(.system(size: 16)).foregroundStyle(GT.text).frame(width: 30)
+                    Text(L("Monochrome")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 }
             }
             .toggleStyle(GlassToggleStyle(accent: accent)).padding(.horizontal, 18).frame(height: 62)
@@ -666,8 +722,8 @@ struct SettingsView: View {
                 .help(String(format: "%.2f s", s.transitionDuration))
             divider
             HStack(spacing: 14) {
-                Image(systemName: "sparkles").font(.system(size: 16)).foregroundStyle(Glass.text).frame(width: 30)
-                Text(L("Reveal effect")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                Image(systemName: "sparkles").font(.system(size: 16)).foregroundStyle(GT.text).frame(width: 30)
+                Text(L("Reveal effect")).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 Spacer()
                 ChipMenu(options: RevealEffect.allCases, selection: $s.reveal) { $0.title }
             }
@@ -691,10 +747,10 @@ struct SettingsView: View {
             }
             .padding(.bottom, 6)
             if s.ignored.isEmpty {
-                Text(L("Apps that skip the veil entirely")).font(.system(size: 10.5)).foregroundStyle(Glass.secondary).padding(.vertical, 6)
+                Text(L("Apps that skip the veil entirely")).font(.system(size: 10.5)).foregroundStyle(GT.secondary).padding(.vertical, 6)
             }
             ForEach(Array(s.ignored.enumerated()), id: \.element) { i, b in
-                if i > 0 { Rectangle().fill(Glass.divider).frame(height: 1) }
+                if i > 0 { Rectangle().fill(GT.divider).frame(height: 1) }
                 AppRow(bundle: b) { withAnimation(spring) { s.ignored.removeAll { $0 == b } } }.padding(.vertical, 10)
             }
         }
@@ -711,10 +767,10 @@ struct SettingsView: View {
                     HStack(spacing: 5) {
                         Text("Veil").font(.system(size: 13, weight: .semibold))
                         Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
-                            .font(.system(size: 13)).foregroundStyle(Glass.secondary)
+                            .font(.system(size: 13)).foregroundStyle(GT.secondary)
                     }
-                    .foregroundStyle(Glass.text)
-                    Text(LF("Update checked: %@", UpdateClock.describe())).font(.system(size: 10.5)).foregroundStyle(Glass.secondary)
+                    .foregroundStyle(GT.text)
+                    Text(LF("Update checked: %@", UpdateClock.describe())).font(.system(size: 10.5)).foregroundStyle(GT.secondary)
                 }
                 Spacer()
                 Button(L("Check Updates")) { UpdateClock.stamp(); checkForUpdates() }.buttonStyle(ChipButtonStyle())
@@ -738,7 +794,7 @@ struct SettingsView: View {
                 HStack {
                     RowTitle(title: L("Scripting Commands"))
                     Spacer()
-                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Glass.secondary)
+                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(GT.secondary)
                         .rotationEffect(.degrees(scriptsOpen ? 180 : 0))
                 }
                 .padding(.vertical, 14)
@@ -764,7 +820,7 @@ struct SettingsView: View {
     private var scriptList: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(L("Click a command to copy it. Run it in Terminal, Shortcuts or AppleScript."))
-                .font(.system(size: 10.5)).foregroundStyle(Glass.secondary).padding(.bottom, 6)
+                .font(.system(size: 10.5)).foregroundStyle(GT.secondary).padding(.bottom, 6)
             ForEach(ScriptCommands.all, id: \.url) { c in
                 Button {
                     NSPasteboard.general.clearContents()
@@ -772,8 +828,8 @@ struct SettingsView: View {
                     withAnimation { copied = c.url }
                 } label: {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("open \"\(c.url)\"").font(.system(size: 10.5, design: .monospaced)).foregroundStyle(Glass.text)
-                        Text(copied == c.url ? L("Copied") : L(c.help)).font(.system(size: 10)).foregroundStyle(copied == c.url ? accent : Glass.secondary)
+                        Text("open \"\(c.url)\"").font(.system(size: 10.5, design: .monospaced)).foregroundStyle(GT.text)
+                        Text(copied == c.url ? L("Copied") : L(c.help)).font(.system(size: 10)).foregroundStyle(copied == c.url ? accent : GT.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 4).padding(.horizontal, 6)
@@ -802,14 +858,14 @@ struct SettingsView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 26)
-        .background(Sheen(accent: accent).clipShape(RoundedRectangle(cornerRadius: Glass.tileRadius, style: .continuous)))
+        .background(Sheen(accent: accent).clipShape(RoundedRectangle(cornerRadius: GT.tileRadius, style: .continuous)))
         .glass(fill: .clear)
     }
 }
 
 extension View {
     /// Standard padding for a row inside a card.
-    func cardRow() -> some View { padding(.horizontal, 22).padding(.vertical, 16) }
+    func cardRow() -> some View { padding(.horizontal, 22).padding(.vertical, 19) }   // measured: 65 pt rows
 }
 
 // MARK: - Small pieces
@@ -859,7 +915,7 @@ struct CircleIconButton: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 15, weight: .regular)).foregroundStyle(Glass.text)
+            Image(systemName: symbol).font(.system(size: 15, weight: .regular)).foregroundStyle(GT.text)
                 .frame(width: 34, height: 34).background(Circle().fill(Color.white.opacity(0.14)))
         }
         .buttonStyle(TileButtonStyle())
@@ -884,10 +940,10 @@ struct AppRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(nsImage: Apps.icon(bundle)).resizable().frame(width: 26, height: 26)
-            Text(Apps.name(bundle)).font(.system(size: 13, weight: .medium)).foregroundStyle(Glass.text).lineLimit(1)
+            Text(Apps.name(bundle)).font(.system(size: 13, weight: .medium)).foregroundStyle(GT.text).lineLimit(1)
             Spacer()
             Button(action: onRemove) {
-                Image(systemName: "minus").font(.system(size: 13, weight: .medium)).foregroundStyle(Glass.secondary).frame(width: 24, height: 24)
+                Image(systemName: "minus").font(.system(size: 13, weight: .medium)).foregroundStyle(GT.secondary).frame(width: 24, height: 24)
             }
             .buttonStyle(TileButtonStyle())
             .help(L("Remove"))
@@ -941,28 +997,28 @@ struct ShortcutRow: View {
     var body: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 7) {
-                Text(action.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Glass.text)
+                Text(action.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(GT.text)
                 HStack(spacing: 4) {
                     if recording {
-                        Text(L("Press keys…")).font(.system(size: 11)).foregroundStyle(Glass.secondary).frame(height: 24)
+                        Text(L("Press keys…")).font(.system(size: 11)).foregroundStyle(GT.secondary).frame(height: 24)
                     } else if let sc = s.shortcut(action) {
                         ForEach(Array(sc.glyphs.enumerated()), id: \.offset) { _, g in
-                            Text(g).font(.system(size: 11, weight: .medium)).foregroundStyle(Glass.text.opacity(0.85))
+                            Text(g).font(.system(size: 11, weight: .medium)).foregroundStyle(GT.text.opacity(0.85))
                                 .frame(minWidth: 24, minHeight: 24).padding(.horizontal, g.count > 1 ? 4 : 0)
                                 .background(Capsule().fill(Color.white.opacity(0.12)))
                         }
                     } else {
-                        Text(L("Not set")).font(.system(size: 11)).foregroundStyle(Glass.secondary).frame(height: 24)
+                        Text(L("Not set")).font(.system(size: 11)).foregroundStyle(GT.secondary).frame(height: 24)
                     }
                 }
             }
             Spacer()
             Button { recording ? stop() : start() } label: {
-                Image(systemName: recording ? "xmark" : "pencil").font(.system(size: 12)).foregroundStyle(Glass.secondary).frame(width: 24, height: 24)
+                Image(systemName: recording ? "xmark" : "pencil").font(.system(size: 12)).foregroundStyle(GT.secondary).frame(width: 24, height: 24)
             }
             .buttonStyle(TileButtonStyle()).help(L("Record"))
             Button { s.shortcuts[action.rawValue] = nil; onChange() } label: {
-                Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(Glass.secondary).frame(width: 24, height: 24)
+                Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(GT.secondary).frame(width: 24, height: 24)
             }
             .buttonStyle(TileButtonStyle()).help(L("Remove shortcut"))
         }
@@ -1045,5 +1101,33 @@ extension Shortcut {
         if modifiers & UInt32(cmdKey) != 0 { g.append("⌘") }
         g.append(Shortcut.keyName(keyCode))
         return g
+    }
+}
+
+/// Top / bottom edge fade of the scrolling column. Measured on the reference (content alpha vs
+/// distance from the panel edge): 0 → .10 → .21 → .41 → .61 → .80 → .91 → 1 at 0…56 pt in 8 pt steps.
+struct EdgeFade: View {
+    static let ramp: [(pt: CGFloat, a: Double)] = [(0, 0), (8, 0.10), (16, 0.21), (24, 0.41), (32, 0.61), (40, 0.80), (48, 0.91), (56, 1)]
+    var body: some View {
+        GeometryReader { g in
+            let h = max(g.size.height, 1)
+            let top = Self.ramp.map { Gradient.Stop(color: .black.opacity($0.a), location: $0.pt / h) }
+            let bottom = Self.ramp.reversed().map { Gradient.Stop(color: .black.opacity($0.a), location: 1 - $0.pt / h) }
+            LinearGradient(gradient: Gradient(stops: top + bottom), startPoint: .top, endPoint: .bottom)
+        }
+    }
+}
+
+/// Whether Veil may script System Events (needed only for Auto-hide), checked without prompting.
+enum AutomationAccess {
+    /// true = granted, false = denied / not yet asked, nil = can't tell (System Events not running).
+    static var status: Bool? {
+        let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.systemevents")
+        guard let desc = target.aeDesc else { return nil }
+        switch AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false) {
+        case noErr: return true
+        case OSStatus(procNotFound): return nil
+        default: return false
+        }
     }
 }

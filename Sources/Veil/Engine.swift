@@ -31,11 +31,13 @@ final class Engine {
     private var shown: [CGDirectDisplayID: Bool] = [:]
     private var anchors: [CGDirectDisplayID: Int] = [:]
     private var timer: Timer?
+    /// Bumped on every settings change so the tick signature notices it.
+    private var settingsVersion = 0
     private var bag = Set<AnyCancellable>()
 
     // Temporary suppression reasons (each one hides the overlay while set).
-    var peeking = false { didSet { if peeking != oldValue { tick() } } }
-    var dragging = false { didSet { if dragging != oldValue { tick() } } }
+    var peeking = false { didSet { if peeking != oldValue { lastSignature = nil; tick() } } }
+    var dragging = false { didSet { if dragging != oldValue { lastSignature = nil; tick() } } }
 
     /// Fires when "is Veil currently visible anywhere" changes (used for auto-hiding bars).
     var onActiveChange: ((Bool) -> Void)?
@@ -51,16 +53,46 @@ final class Engine {
             wnc.addObserver(self, selector: #selector(rebuildSoon), name: n, object: nil)
         }
         wnc.addObserver(self, selector: #selector(appChanged), name: NSWorkspace.didActivateApplicationNotification, object: nil)
+        for n in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            wnc.addObserver(self, selector: #selector(appsChanged), name: n, object: nil)
+        }
+        // Pause polling while the screen is locked or the displays sleep.
+        let dnc = DistributedNotificationCenter.default()
+        dnc.addObserver(self, selector: #selector(screenLocked), name: .init("com.apple.screenIsLocked"), object: nil)
+        dnc.addObserver(self, selector: #selector(screenUnlocked), name: .init("com.apple.screenIsUnlocked"), object: nil)
+        wnc.addObserver(self, selector: #selector(screenLocked), name: NSWorkspace.screensDidSleepNotification, object: nil)
+        wnc.addObserver(self, selector: #selector(screenUnlocked), name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         // Restyle overlays whenever a look-related setting changes.
         s.objectWillChange
             .debounce(for: .milliseconds(30), scheduler: RunLoop.main)
-            .sink { [weak self] in self?.overlays.forEach { $0.applyStyle() }; self?.tick() }
+            .sink { [weak self] in
+                guard let self else { return }
+                self.settingsVersion &+= 1
+                self.overlays.forEach { $0.applyStyle() }
+                self.tick()
+            }
             .store(in: &bag)
 
-        let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
-        RunLoop.main.add(t, forMode: .common)
-        timer = t
+        adjustPolling()
+    }
+
+    private var locked = false
+    @objc private func screenLocked() { locked = true; adjustPolling() }
+    @objc private func screenUnlocked() { locked = false; lastSignature = nil; adjustPolling(); tick() }
+
+    /// Cheap fingerprint of everything tick() depends on; when it hasn't changed, there's nothing to do.
+    private var lastSignature: [Int]?
+    /// Consecutive polls with an unchanged signature (drives the adaptive poll rate).
+    private var idleTicks = 0
+
+    /// Something just happened that may change focus or window order (a click, an app switch):
+    /// look now and again shortly after, and go back to the fast poll rate.
+    func kick() {
+        idleTicks = 0
+        adjustPolling()
+        tick()
+        for d in [0.06, 0.18] { DispatchQueue.main.asyncAfter(deadline: .now() + d) { [weak self] in self?.tick() } }
     }
 
     @objc func rebuildSoon() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.rebuild() } }
@@ -68,7 +100,7 @@ final class Engine {
     @objc func rebuild() {
         overlays.forEach { $0.orderOut(nil) }
         overlays = NSScreen.screens.map { OverlayWindow(screen: $0) }
-        shown = [:]; anchors = [:]
+        shown = [:]; anchors = [:]; lastSignature = nil
         tick()
     }
 
@@ -78,7 +110,7 @@ final class Engine {
 
     @objc private func appChanged() {
         if let f = NSWorkspace.shared.frontmostApplication, f.processIdentifier != getpid() { lastExternal = f }
-        tick()
+        kick()
     }
 
     var focusedAppPublic: NSRunningApplication? { focusedApp }
@@ -128,8 +160,24 @@ final class Engine {
         return [bundle]
     }
 
+    /// bundle id → pids of running apps. Rebuilt only when an app launches or quits
+    /// (`NSWorkspace.runningApplications` is far too slow to call 20 times a second).
+    private var pidCache: [String: [pid_t]] = [:]
+    private var pidCacheValid = false
+
+    @objc private func appsChanged() {
+        pidCacheValid = false
+        lastSignature = nil          // an App Group peer may have windows on screen already
+        kick()
+    }
+
     private func pidsFor(_ bundles: Set<String>) -> Set<pid_t> {
-        Set(NSWorkspace.shared.runningApplications.filter { bundles.contains($0.bundleIdentifier ?? "") }.map(\.processIdentifier))
+        if !pidCacheValid {
+            pidCache = Dictionary(grouping: NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier != nil },
+                                  by: { $0.bundleIdentifier! }).mapValues { $0.map(\.processIdentifier) }
+            pidCacheValid = true
+        }
+        return Set(bundles.flatMap { pidCache[$0] ?? [] })
     }
 
     /// Corner radius used for holes — close to macOS 26 window corners.
@@ -139,13 +187,36 @@ final class Engine {
         let front = focusedApp
         let frontBundle = front?.bundleIdentifier ?? ""
         let suppressed = !s.enabled || peeking || dragging || front == nil || s.ignored.contains(frontBundle)
-        let all = Self.windows()
-        let normal = all.filter(isNormal)
-        let frontPID = front?.processIdentifier ?? -1
-        let focusWin = normal.first { $0.pid == frontPID }
         adjustPolling()
+        if suppressed {
+            lastSignature = nil
+            overlays.forEach { setShown($0, false) }
+            updateActive()
+            return
+        }
+        let all = Self.windows()
+        let frontPID = front?.processIdentifier ?? -1
+        // Skip the whole placement pass when no window moved, appeared or changed order
+        // and the front app is the same (the common case: 20 polls a second of nothing).
+        var sig = [Int(frontPID), settingsVersion]
+        sig.reserveCapacity(all.count * 5 + 2)
+        // Only app windows (and the Stage Manager strip) matter; menu-bar extras, the recording
+        // indicator and other system windows come and go constantly and must not wake the pass.
+        for w in all where w.layer == 0 || w.owner == "WindowManager" {
+            sig += [w.id, Int(w.frame.minX), Int(w.frame.minY), Int(w.frame.width), Int(w.frame.height)]
+        }
+        if sig == lastSignature {
+            idleTicks += 1
+            if idleTicks == 20 { adjustPolling() }        // 1 s without changes → slow down
+            return
+        }
+        lastSignature = sig
+        if idleTicks >= 20 { idleTicks = 0; adjustPolling() } else { idleTicks = 0 }
+        let normal = all.filter(isNormal)
+        let focusWin = normal.first { $0.pid == frontPID }
 
-        guard !suppressed, let focus = focusWin else {
+        guard let focus = focusWin else {
+            lastSignature = nil
             overlays.forEach { setShown($0, false) }
             updateActive()
             return
@@ -222,10 +293,15 @@ final class Engine {
 
     /// Poll the window list at 20 Hz (focus changes inside one app have no notification).
     private func adjustPolling() {
-        let want: TimeInterval = 1.0 / 20
-        guard timer?.timeInterval != want else { return }
-        timer?.invalidate()
+        // Off or locked: no timer at all (the settings sink and notifications call tick() when that changes).
+        // 20 Hz while windows are changing; 4 Hz after a second of stillness (clicks and app
+        // switches call kick(), so focus changes are still picked up at once).
+        let want: TimeInterval? = (!s.enabled || locked) ? nil : (idleTicks >= 20 ? 0.25 : 1.0 / 20)
+        guard timer?.isValid == true ? timer?.timeInterval != want : want != nil else { return }
+        timer?.invalidate(); timer = nil
+        guard let want else { return }
         let t = Timer(timeInterval: want, repeats: true) { [weak self] _ in self?.tick() }
+        t.tolerance = want * 0.2                       // let the system coalesce wake-ups
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
